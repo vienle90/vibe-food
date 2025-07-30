@@ -21,9 +21,9 @@ export const getStoresQuerySchema = z.object({
   category: StoreCategorySchema.optional(),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-  sortBy: z.enum(['name', 'rating', 'deliveryTime', 'createdAt']).default('name'),
-  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  sort: z.enum(['relevance', 'rating', 'name', 'createdAt']).default('rating'),
+  isActive: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
 });
 
 export type GetStoresQuery = z.infer<typeof getStoresQuerySchema>;
@@ -32,25 +32,25 @@ export const getStoresResponseSchema = z.object({
   stores: z.array(z.object({
     id: z.string(),
     name: z.string(),
-    description: z.string().optional(),
+    description: z.string().nullable(),
     category: StoreCategorySchema,
-    rating: z.number().min(0).max(5).optional(),
+    rating: z.number().min(0).max(5).nullable(),
+    totalOrders: z.number().int().min(0),
     deliveryFee: z.number().min(0),
     minimumOrder: z.number().min(0),
     estimatedDeliveryTime: z.number().int().min(1),
     isActive: z.boolean(),
     address: z.string(),
-    phone: z.string().optional(),
+    phone: z.string().nullable(),
+    email: z.string().nullable(),
+    operatingHours: z.record(z.any()),
+    ownerId: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
   })),
-  pagination: paginationMetaSchema,
-  filters: z.object({
-    categories: z.array(StoreCategorySchema),
-    priceRanges: z.array(z.object({
-      min: z.number(),
-      max: z.number(),
-      label: z.string(),
-    })),
-  }),
+  total: z.number().int().min(0),
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1),
 });
 
 export type GetStoresResponse = z.infer<typeof getStoresResponseSchema>;

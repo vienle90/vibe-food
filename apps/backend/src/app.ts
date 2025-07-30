@@ -125,8 +125,10 @@ app.get('/api', (_req, res) => {
 });
 
 // Mount authentication routes
+import storeRoutes from './domains/store/routes/store.routes';
 const authRoutes = createAuthRoutes(prisma);
 app.use('/api/auth', authRoutes);
+app.use('/api/stores', storeRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {

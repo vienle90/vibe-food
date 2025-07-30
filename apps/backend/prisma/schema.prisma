@@ -18,11 +18,12 @@ enum UserRole {
 }
 
 enum StoreCategory {
-  lunch
-  dinner
-  coffee
-  tea
-  dessert
+  LUNCH
+  DINNER
+  COFFEE
+  TEA
+  DESSERT
+  FAST_FOOD
 }
 
 enum OrderStatus {
@@ -98,6 +99,7 @@ model Store {
   phone                  String?       @db.VarChar(20)
   email                  String?
   rating                 Decimal?      @db.Decimal(3, 2) // e.g., 4.55
+  totalOrders            Int           @default(0)
   deliveryFee            Decimal       @default(2.99) @db.Decimal(10, 2)
   minimumOrder           Decimal       @default(10.00) @db.Decimal(10, 2)
   estimatedDeliveryTime  Int           @default(30) // in minutes
@@ -116,8 +118,8 @@ model Store {
   updatedAt DateTime @updatedAt
   
   // Indexes
-  @@index([category])
-  @@index([isActive])
+  @@index([category, isActive], name: "idx_stores_category_active")
+  @@index([isActive, rating(sort: Desc)], name: "idx_stores_rating_active")
   @@index([ownerId])
   @@index([rating])
   @@map("stores")

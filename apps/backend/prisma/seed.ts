@@ -30,6 +30,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: 'admin@vibe.com',
+        username: 'admin',
         password: hashedPassword,
         firstName: 'Admin',
         lastName: 'User',
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: 'pizza.owner@vibe.com',
+        username: 'mario_pizza',
         password: hashedPassword,
         firstName: 'Mario',
         lastName: 'Rossi',
@@ -59,6 +61,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: 'coffee.owner@vibe.com',
+        username: 'sarah_coffee',
         password: hashedPassword,
         firstName: 'Sarah',
         lastName: 'Bean',
@@ -73,6 +76,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: 'sushi.owner@vibe.com',
+        username: 'takeshi_sushi',
         password: hashedPassword,
         firstName: 'Takeshi',
         lastName: 'Yamamoto',
@@ -88,6 +92,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: 'john.doe@example.com',
+        username: 'johndoe',
         password: hashedPassword,
         firstName: 'John',
         lastName: 'Doe',
@@ -102,6 +107,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: 'jane.smith@example.com',
+        username: 'janesmith',
         password: hashedPassword,
         firstName: 'Jane',
         lastName: 'Smith',
@@ -123,7 +129,7 @@ async function main(): Promise<void> {
         id: 'pizza-store-1',
         name: "Mario's Authentic Pizza",
         description: 'Traditional Italian pizza made with fresh ingredients and wood-fired ovens. Family recipe since 1952.',
-        category: 'lunch',
+        category: 'LUNCH',
         address: '123 Pizza Street, Little Italy, NY 10013',
         phone: '+1-212-555-0001',
         email: 'info@mariospizza.com',
@@ -151,7 +157,7 @@ async function main(): Promise<void> {
         id: 'coffee-store-1',
         name: 'Bean There Coffee Co.',
         description: 'Artisan coffee roasted daily. Perfect for your morning caffeine fix or afternoon break.',
-        category: 'coffee',
+        category: 'COFFEE',
         address: '456 Coffee Avenue, Brew District, CA 94102',
         phone: '+1-415-555-0002',
         email: 'hello@beanthere.com',
@@ -179,7 +185,7 @@ async function main(): Promise<void> {
         id: 'sushi-store-1',
         name: 'Sakura Sushi House',
         description: 'Fresh sushi and Japanese cuisine prepared by master chefs. Premium quality fish delivered daily.',
-        category: 'dinner',
+        category: 'DINNER',
         address: '789 Sushi Lane, Japan Town, SF 94115',
         phone: '+1-415-555-0003',
         email: 'orders@sakurasushi.com',
@@ -207,7 +213,7 @@ async function main(): Promise<void> {
         id: 'dessert-store-1',
         name: 'Sweet Dreams Bakery',
         description: 'Handcrafted desserts, cakes, and pastries made fresh daily with premium ingredients.',
-        category: 'dessert',
+        category: 'DESSERT',
         address: '321 Sweet Street, Sugar Hill, NY 10033',
         phone: '+1-212-555-0004',
         email: 'orders@sweetdreams.com',

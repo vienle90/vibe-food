@@ -53,7 +53,7 @@ export type Rating = z.infer<typeof RatingSchema>;
 export const UserRoleSchema = z.enum(['CUSTOMER', 'STORE_OWNER', 'ADMIN']);
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
-export const StoreCategorySchema = z.enum(['lunch', 'dinner', 'coffee', 'tea', 'dessert']);
+export const StoreCategorySchema = z.enum(['LUNCH', 'DINNER', 'COFFEE', 'TEA', 'DESSERT', 'FAST_FOOD']);
 export type StoreCategory = z.infer<typeof StoreCategorySchema>;
 
 export const OrderStatusSchema = z.enum(['NEW', 'PROCESSING', 'SHIPPING', 'DONE', 'CANCELLED']);
