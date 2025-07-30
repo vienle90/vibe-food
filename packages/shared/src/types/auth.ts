@@ -1,36 +1,19 @@
 import { z } from 'zod';
-import { UserIdSchema, UserRoleSchema, userSchema } from './core.js';
+import { strongPasswordSchema, usernameSchema, type JwtAccessPayload, type JwtRefreshPayload } from './core';
+import { userEntitySchema } from './entities';
 
 /**
  * Authentication schemas and types for the Vibe food ordering application.
  * 
  * Provides comprehensive validation for:
  * - User registration and login
- * - JWT token payloads
+ * - JWT token payloads (imported from core.ts)
  * - Authentication responses
- * - Password strength requirements
+ * - Password reset workflows
+ * 
+ * Note: Password and username validation schemas are imported from core.ts
+ * to maintain consistency across the application.
  */
-
-/**
- * Strong password validation schema
- * Requirements: minimum 8 characters, uppercase, lowercase, number
- */
-export const strongPasswordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters long')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number');
-
-/**
- * Username validation schema
- * Requirements: 3-20 characters, alphanumeric and underscore only
- */
-export const usernameSchema = z
-  .string()
-  .min(3, 'Username must be at least 3 characters long')
-  .max(20, 'Username must be at most 20 characters long')
-  .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores');
 
 /**
  * User registration request schema
@@ -60,34 +43,6 @@ export const loginRequestSchema = z.object({
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
 /**
- * JWT access token payload schema
- * Contains user data for stateless authorization
- */
-export const jwtAccessPayloadSchema = z.object({
-  sub: UserIdSchema, // Subject (user ID)
-  email: z.string().email(),
-  username: usernameSchema,
-  role: UserRoleSchema,
-  firstName: z.string(),
-  lastName: z.string(),
-  // JWT claims (iat, exp) are added automatically by JWT library
-});
-
-export type JwtAccessPayload = z.infer<typeof jwtAccessPayloadSchema>;
-
-/**
- * JWT refresh token payload schema
- * Minimal payload for security - only user ID and token ID for rotation tracking
- */
-export const jwtRefreshPayloadSchema = z.object({
-  sub: UserIdSchema, // Subject (user ID)
-  tokenId: z.string().uuid(), // For token rotation tracking
-  // JWT claims (iat, exp) are added automatically by JWT library
-});
-
-export type JwtRefreshPayload = z.infer<typeof jwtRefreshPayloadSchema>;
-
-/**
  * Authentication tokens response schema
  */
 export const authTokensSchema = z.object({
@@ -102,8 +57,8 @@ export type AuthTokens = z.infer<typeof authTokensSchema>;
  * Authenticated user profile schema
  * Excludes sensitive information like password hash
  */
-export const authUserSchema = userSchema.omit({
-  // No sensitive fields to omit in the current user schema
+export const authUserSchema = userEntitySchema.omit({
+  password: true, // Exclude password hash from API responses
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;

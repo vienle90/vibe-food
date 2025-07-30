@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 /**
  * Environment variable validation schema using Zod.
@@ -67,8 +67,7 @@ export type JwtSecret = z.infer<typeof JwtSecretSchema>;
  */
 function parseEnv(): z.infer<typeof envSchema> {
   try {
-    const result = envSchema.parse(process.env);
-    return result;
+    return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map(
@@ -185,4 +184,3 @@ export { envSchema };
  * Type definitions for environment variables
  */
 export type EnvConfig = z.infer<typeof envSchema>;
-export type NodeEnv = EnvConfig['NODE_ENV'];

@@ -4,7 +4,10 @@ import {
   OrderStatusSchema,
   PaymentMethodSchema,
   paginationMetaSchema,
-} from './core.js';
+} from './core';
+
+// Import cart item schema from entities to avoid duplication
+import { cartItemSchema } from './entities';
 
 /**
  * API request and response schemas for all endpoints.
@@ -79,6 +82,58 @@ export const getStoreDetailsResponseSchema = z.object({
 export type GetStoreDetailsResponse = z.infer<typeof getStoreDetailsResponseSchema>;
 
 /**
+ * Store management API schemas (for store owners and admin)
+ */
+export const createStoreRequestSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  category: StoreCategorySchema,
+  address: z.string().min(1).max(200),
+  phone: z.string().regex(/^\+?[\d\s-()]+$/).optional(),
+  email: z.string().email().optional(),
+  deliveryFee: z.number().min(0).default(0),
+  minimumOrder: z.number().min(0).default(0),
+  estimatedDeliveryTime: z.number().int().min(1).default(30),
+  operatingHours: z.object({
+    monday: z.object({ open: z.string(), close: z.string() }).optional(),
+    tuesday: z.object({ open: z.string(), close: z.string() }).optional(),
+    wednesday: z.object({ open: z.string(), close: z.string() }).optional(),
+    thursday: z.object({ open: z.string(), close: z.string() }).optional(),
+    friday: z.object({ open: z.string(), close: z.string() }).optional(),
+    saturday: z.object({ open: z.string(), close: z.string() }).optional(),
+    sunday: z.object({ open: z.string(), close: z.string() }).optional(),
+  }).optional(),
+});
+
+export type CreateStoreRequest = z.infer<typeof createStoreRequestSchema>;
+
+export const createStoreResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: StoreCategorySchema,
+  isActive: z.boolean(),
+  createdAt: z.string().datetime(),
+});
+
+export type CreateStoreResponse = z.infer<typeof createStoreResponseSchema>;
+
+export const updateStoreRequestSchema = createStoreRequestSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateStoreRequest = z.infer<typeof updateStoreRequestSchema>;
+
+export const updateStoreResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: StoreCategorySchema,
+  isActive: z.boolean(),
+  updatedAt: z.string().datetime(),
+});
+
+export type UpdateStoreResponse = z.infer<typeof updateStoreResponseSchema>;
+
+/**
  * Menu API schemas
  */
 export const getMenuQuerySchema = z.object({
@@ -118,15 +173,64 @@ export const getMenuResponseSchema = z.object({
 export type GetMenuResponse = z.infer<typeof getMenuResponseSchema>;
 
 /**
- * Cart and Order API schemas
+ * Menu Item Management API schemas (for store owners)
  */
-export const cartItemSchema = z.object({
-  menuItemId: z.string().cuid(),
-  quantity: z.number().int().min(1).max(10),
-  specialInstructions: z.string().max(200).optional(),
+export const createMenuItemRequestSchema = z.object({
+  storeId: z.string().cuid(),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  price: z.number().positive().multipleOf(0.01),
+  category: z.string().min(1).max(50),
+  imageUrl: z.string().url().optional(),
+  preparationTime: z.number().int().min(1).default(15),
+  allergens: z.array(z.string()).default([]),
+  nutritionalInfo: z.object({
+    calories: z.number().min(0).optional(),
+    protein: z.number().min(0).optional(),
+    carbs: z.number().min(0).optional(),
+    fat: z.number().min(0).optional(),
+  }).optional(),
+  isAvailable: z.boolean().default(true),
 });
 
-export type CartItem = z.infer<typeof cartItemSchema>;
+export type CreateMenuItemRequest = z.infer<typeof createMenuItemRequestSchema>;
+
+export const createMenuItemResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+  category: z.string(),
+  isAvailable: z.boolean(),
+  createdAt: z.string().datetime(),
+});
+
+export type CreateMenuItemResponse = z.infer<typeof createMenuItemResponseSchema>;
+
+export const updateMenuItemRequestSchema = createMenuItemRequestSchema.omit({ storeId: true }).partial();
+
+export type UpdateMenuItemRequest = z.infer<typeof updateMenuItemRequestSchema>;
+
+export const updateMenuItemResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+  category: z.string(),
+  isAvailable: z.boolean(),
+  updatedAt: z.string().datetime(),
+});
+
+export type UpdateMenuItemResponse = z.infer<typeof updateMenuItemResponseSchema>;
+
+export const deleteMenuItemResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+export type DeleteMenuItemResponse = z.infer<typeof deleteMenuItemResponseSchema>;
+
+/**
+ * Cart and Order API schemas
+ */
 
 export const createOrderRequestSchema = z.object({
   storeId: z.string().cuid(),
@@ -211,6 +315,21 @@ export const getOrderDetailsResponseSchema = z.object({
 
 export type GetOrderDetailsResponse = z.infer<typeof getOrderDetailsResponseSchema>;
 
+export const updateOrderStatusRequestSchema = z.object({
+  status: OrderStatusSchema,
+  notes: z.string().max(500).optional(),
+});
+
+export type UpdateOrderStatusRequest = z.infer<typeof updateOrderStatusRequestSchema>;
+
+export const updateOrderStatusResponseSchema = z.object({
+  id: z.string(),
+  status: OrderStatusSchema,
+  updatedAt: z.string().datetime(),
+});
+
+export type UpdateOrderStatusResponse = z.infer<typeof updateOrderStatusResponseSchema>;
+
 /**
  * User profile API schemas
  */
@@ -256,3 +375,74 @@ export const healthCheckResponseSchema = z.object({
 });
 
 export type HealthCheckResponse = z.infer<typeof healthCheckResponseSchema>;
+
+/**
+ * User management API schemas (admin only)
+ */
+export const getUsersQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  role: z.enum(['CUSTOMER', 'STORE_OWNER', 'ADMIN']).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  sortBy: z.enum(['firstName', 'lastName', 'email', 'createdAt']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>;
+
+export const getUsersResponseSchema = z.object({
+  users: z.array(z.object({
+    id: z.string(),
+    email: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
+    role: z.enum(['CUSTOMER', 'STORE_OWNER', 'ADMIN']),
+    isActive: z.boolean(),
+    createdAt: z.string().datetime(),
+    lastLoginAt: z.string().datetime().optional(),
+  })),
+  pagination: paginationMetaSchema,
+});
+
+export type GetUsersResponse = z.infer<typeof getUsersResponseSchema>;
+
+export const updateUserRoleRequestSchema = z.object({
+  role: z.enum(['CUSTOMER', 'STORE_OWNER', 'ADMIN']),
+});
+
+export type UpdateUserRoleRequest = z.infer<typeof updateUserRoleRequestSchema>;
+
+export const updateUserStatusRequestSchema = z.object({
+  isActive: z.boolean(),
+  reason: z.string().max(500).optional(),
+});
+
+export type UpdateUserStatusRequest = z.infer<typeof updateUserStatusRequestSchema>;
+
+export const getUserDetailsResponseSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  role: z.enum(['CUSTOMER', 'STORE_OWNER', 'ADMIN']),
+  isActive: z.boolean(),
+  stores: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    category: StoreCategorySchema,
+    isActive: z.boolean(),
+  })).optional(),
+  orderStats: z.object({
+    totalOrders: z.number(),
+    totalSpent: z.number(),
+    averageOrderValue: z.number(),
+  }).optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  lastLoginAt: z.string().datetime().optional(),
+});
+
+export type GetUserDetailsResponse = z.infer<typeof getUserDetailsResponseSchema>;
