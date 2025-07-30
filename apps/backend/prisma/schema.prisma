@@ -1,0 +1,212 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for constrained values
+enum UserRole {
+  CUSTOMER
+  STORE_OWNER
+  ADMIN
+}
+
+enum StoreCategory {
+  lunch
+  dinner
+  coffee
+  tea
+  dessert
+}
+
+enum OrderStatus {
+  NEW
+  PROCESSING
+  SHIPPING
+  DONE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CREDIT_CARD
+  DIGITAL_WALLET
+}
+
+// User entity - handles authentication and user profiles
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt hashed password
+  firstName String   @db.VarChar(50)
+  lastName  String   @db.VarChar(50)
+  role      UserRole @default(CUSTOMER)
+  isActive  Boolean  @default(true)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.VarChar(200)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  ownedStores Store[] @relation("StoreOwner")
+  orders      Order[] @relation("CustomerOrders")
+  
+  // Indexes
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+// Store entity - represents restaurants/food establishments
+model Store {
+  id                     String        @id @default(cuid())
+  name                   String        @db.VarChar(100)
+  description            String?       @db.VarChar(500)
+  category               StoreCategory
+  isActive               Boolean       @default(true)
+  address                String        @db.VarChar(200)
+  phone                  String?       @db.VarChar(20)
+  email                  String?
+  rating                 Decimal?      @db.Decimal(3, 2) // e.g., 4.55
+  deliveryFee            Decimal       @default(2.99) @db.Decimal(10, 2)
+  minimumOrder           Decimal       @default(10.00) @db.Decimal(10, 2)
+  estimatedDeliveryTime  Int           @default(30) // in minutes
+  
+  // Operating hours as JSON (flexible structure)
+  operatingHours Json @default("{}")
+  
+  // Relations
+  ownerId   String
+  owner     User        @relation("StoreOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  menuItems MenuItem[]
+  orders    Order[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([category])
+  @@index([isActive])
+  @@index([ownerId])
+  @@index([rating])
+  @@map("stores")
+}
+
+// MenuItem entity - represents food items available at stores
+model MenuItem {
+  id              String  @id @default(cuid())
+  name            String  @db.VarChar(100)
+  description     String? @db.VarChar(500)
+  price           Decimal @db.Decimal(10, 2)
+  category        String  @db.VarChar(50)
+  isAvailable     Boolean @default(true)
+  imageUrl        String?
+  preparationTime Int     @default(15) // in minutes
+  allergens       String[] @default([]) // Array of allergen strings
+  
+  // Nutritional information as JSON (optional)
+  nutritionalInfo Json?
+  
+  // Relations
+  storeId    String
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([storeId])
+  @@index([category])
+  @@index([isAvailable])
+  @@index([price])
+  @@map("menu_items")
+}
+
+// Order entity - represents customer orders
+model Order {
+  id                    String        @id @default(cuid())
+  orderNumber           String        @unique // Human-readable order number
+  status                OrderStatus   @default(NEW)
+  
+  // Pricing breakdown
+  subtotal              Decimal       @db.Decimal(10, 2)
+  deliveryFee           Decimal       @db.Decimal(10, 2)
+  tax                   Decimal       @db.Decimal(10, 2)
+  total                 Decimal       @db.Decimal(10, 2)
+  
+  paymentMethod         PaymentMethod @default(CASH_ON_DELIVERY)
+  
+  // Delivery information
+  deliveryAddress       String        @db.VarChar(200)
+  customerPhone         String        @db.VarChar(20)
+  notes                 String?       @db.VarChar(500)
+  
+  // Timing
+  estimatedDeliveryTime DateTime?
+  actualDeliveryTime    DateTime?
+  
+  // Relations
+  customerId String
+  customer   User      @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  storeId    String
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([customerId])
+  @@index([storeId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// OrderItem entity - line items for orders
+model OrderItem {
+  id                   String  @id @default(cuid())
+  quantity             Int     @default(1)
+  unitPrice            Decimal @db.Decimal(10, 2)
+  totalPrice           Decimal @db.Decimal(10, 2)
+  specialInstructions  String? @db.VarChar(200)
+  
+  // Relations
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([orderId])
+  @@index([menuItemId])
+  @@map("order_items")
+}
+
+// Additional indexes for performance optimization
+// These are separate from the model definitions for clarity
+
+// Composite indexes for common query patterns
+// User email + role for authentication queries
+// Store category + isActive for filtering
+// MenuItem storeId + category + isAvailable for menu displays
+// Order customerId + status for order history
+// OrderItem orderId + menuItemId for order details

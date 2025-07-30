@@ -1,0 +1,47 @@
+{
+  "name": "vibe-food-ordering",
+  "version": "1.0.0",
+  "description": "Vibe food ordering application - monorepo with backend, frontend, and shared packages",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd apps/backend && npm run dev",
+    "dev:frontend": "cd apps/frontend && npm run dev",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "build:shared": "cd packages/shared && npm run build",
+    "build:backend": "cd apps/backend && npm run build",
+    "build:frontend": "cd apps/frontend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd apps/backend && npm test",
+    "test:frontend": "cd apps/frontend && npm test",
+    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:shared",
+    "lint:backend": "cd apps/backend && npm run lint",
+    "lint:frontend": "cd apps/frontend && npm run lint",
+    "lint:shared": "cd packages/shared && npm run lint",
+    "type-check": "npm run type-check:backend && npm run type-check:frontend && npm run type-check:shared",
+    "type-check:backend": "cd apps/backend && npm run type-check",
+    "type-check:frontend": "cd apps/frontend && npm run type-check",
+    "type-check:shared": "cd packages/shared && npm run type-check",
+    "db:generate": "cd apps/backend && npx prisma generate",
+    "db:migrate": "cd apps/backend && npx prisma migrate dev",
+    "db:seed": "cd apps/backend && npx prisma db seed",
+    "db:studio": "cd apps/backend && npx prisma studio",
+    "db:reset": "cd apps/backend && npx prisma migrate reset",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist apps/*/.next",
+    "validate": "npm run lint && npm run type-check && npm run test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
