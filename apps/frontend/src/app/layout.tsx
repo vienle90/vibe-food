@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ReactElement, ReactNode } from 'react';
+import { RootProviders } from '@/lib/providers';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
   description: 'Discover restaurants, browse menus, and order your favorite food for delivery',
   keywords: ['food delivery', 'restaurant', 'ordering', 'takeaway'],
   authors: [{ name: 'Vibe Team' }],
-  viewport: 'width=device-width, initial-scale=1',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
   themeColor: '#ffffff',
 };
 
@@ -23,7 +28,9 @@ export default function RootLayout({ children }: RootLayoutProps): ReactElement 
     <html lang="en" className={inter.className}>
       <body>
         <div id="root">
-          {children}
+          <RootProviders>
+            {children}
+          </RootProviders>
         </div>
       </body>
     </html>

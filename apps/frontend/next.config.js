@@ -6,7 +6,6 @@ const nextConfig = {
   // Experimental features
   experimental: {
     // Enable server components logging
-    serverExternalPackages: ['@vibe/shared'],
   },
   
   // TypeScript configuration
@@ -23,7 +22,7 @@ const nextConfig = {
   
   // Image optimization
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],
   },
   
