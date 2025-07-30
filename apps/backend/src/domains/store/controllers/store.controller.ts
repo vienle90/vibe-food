@@ -24,4 +24,19 @@ export class StoreController {
       next(error);
     }
   };
+
+  getStoreById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const result = await this.storeService.getStoreDetails(id!);
+      
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

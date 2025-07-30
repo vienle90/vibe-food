@@ -61,6 +61,7 @@ export const getStoreDetailsResponseSchema = z.object({
   description: z.string().optional(),
   category: StoreCategorySchema,
   rating: z.number().min(0).max(5).optional(),
+  totalOrders: z.number().int().min(0),
   deliveryFee: z.number().min(0),
   minimumOrder: z.number().min(0),
   estimatedDeliveryTime: z.number().int().min(1),
@@ -77,6 +78,18 @@ export const getStoreDetailsResponseSchema = z.object({
     saturday: z.object({ open: z.string(), close: z.string() }).optional(),
     sunday: z.object({ open: z.string(), close: z.string() }).optional(),
   }),
+  owner: z.object({
+    id: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
+  }),
+  menuCategories: z.array(z.string()),
+  _count: z.object({
+    orders: z.number().int().min(0),
+    menuItems: z.number().int().min(0),
+  }),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 export type GetStoreDetailsResponse = z.infer<typeof getStoreDetailsResponseSchema>;
@@ -148,26 +161,27 @@ export type GetMenuQuery = z.infer<typeof getMenuQuerySchema>;
 export const getMenuResponseSchema = z.object({
   storeId: z.string(),
   storeName: z.string(),
-  categories: z.array(z.object({
+  menuItems: z.array(z.object({
+    id: z.string(),
     name: z.string(),
-    items: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().optional(),
-      price: z.number().positive(),
-      category: z.string(),
-      isAvailable: z.boolean(),
-      imageUrl: z.string().optional(),
-      preparationTime: z.number().int().min(1),
-      allergens: z.array(z.string()),
-      nutritionalInfo: z.object({
-        calories: z.number().min(0).optional(),
-        protein: z.number().min(0).optional(),
-        carbs: z.number().min(0).optional(),
-        fat: z.number().min(0).optional(),
-      }).optional(),
-    })),
+    description: z.string().optional(),
+    price: z.number().positive(),
+    category: z.string(),
+    isAvailable: z.boolean(),
+    imageUrl: z.string().optional(),
+    preparationTime: z.number().int().min(1),
+    allergens: z.array(z.string()),
+    nutritionalInfo: z.object({
+      calories: z.number().min(0).optional(),
+      protein: z.number().min(0).optional(),
+      carbs: z.number().min(0).optional(),
+      fat: z.number().min(0).optional(),
+    }).optional(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
   })),
+  categories: z.array(z.string()),
+  total: z.number().int().min(0),
 });
 
 export type GetMenuResponse = z.infer<typeof getMenuResponseSchema>;
@@ -227,6 +241,16 @@ export const deleteMenuItemResponseSchema = z.object({
 });
 
 export type DeleteMenuItemResponse = z.infer<typeof deleteMenuItemResponseSchema>;
+
+/**
+ * Image Upload API schemas
+ */
+export const uploadImageResponseSchema = z.object({
+  imageUrl: z.string().url(),
+  message: z.string(),
+});
+
+export type UploadImageResponse = z.infer<typeof uploadImageResponseSchema>;
 
 /**
  * Cart and Order API schemas

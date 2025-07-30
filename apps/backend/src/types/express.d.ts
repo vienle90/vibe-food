@@ -6,6 +6,7 @@
  */
 
 import { AuthenticatedUser } from '@vibe/shared/types/auth';
+import { Store, MenuItem } from '@prisma/client';
 
 declare global {
   namespace Express {
@@ -27,6 +28,34 @@ declare global {
        * - AuthenticatedUser: Valid token with user information
        */
       user?: AuthenticatedUser;
+
+      /**
+       * Store information for ownership verification
+       * 
+       * This property is set by the store ownership middleware when a valid
+       * store ownership is verified. It contains the store information.
+       * 
+       * - Undefined: No store ownership verification attempted
+       * - Store: Valid store ownership verified
+       */
+      store?: Store;
+
+      /**
+       * Menu item information for ownership verification
+       * 
+       * This property is set by the menu item ownership middleware when a valid
+       * menu item ownership is verified through store relationship.
+       * 
+       * - Undefined: No menu item ownership verification attempted
+       * - MenuItem: Valid menu item ownership verified
+       */
+      menuItem?: MenuItem & {
+        store?: {
+          id: string;
+          name: string;
+          ownerId: string;
+        };
+      };
     }
   }
 }

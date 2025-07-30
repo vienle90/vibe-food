@@ -8,6 +8,7 @@ import { env } from '@vibe/shared';
 import { PrismaClient } from '@prisma/client';
 import { AppError, isOperationalError, createErrorResponse } from '@vibe/shared';
 import { createAuthRoutes } from './domains/auth/index.js';
+import { redisClient } from './infrastructure/cache/redis.client';
 
 // Initialize logger
 const logger = pino({
@@ -23,6 +24,11 @@ const prisma = new PrismaClient({
   log: env.NODE_ENV === 'development' 
     ? ['query', 'info', 'warn', 'error']
     : ['error'],
+});
+
+// Initialize Redis client (non-blocking)
+redisClient.connect().catch((error) => {
+  logger.warn({ error }, 'Redis connection failed - continuing without cache');
 });
 
 // Create Express application
@@ -63,6 +69,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Cookie parsing middleware for authentication
 app.use(cookieParser());
 
+// Static file serving for uploaded images
+app.use('/uploads', express.static('uploads'));
+
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
@@ -95,11 +104,15 @@ app.get('/health', async (_req, res) => {
     // Test database connection
     await prisma.$queryRaw`SELECT 1`;
     
+    // Test Redis connection (non-blocking)
+    const cacheHealthy = redisClient.isHealthy();
+    
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || '1.0.0',
       database: 'connected',
+      cache: cacheHealthy ? 'connected' : 'disconnected',
       uptime: process.uptime(),
     });
   } catch (error) {
@@ -109,6 +122,7 @@ app.get('/health', async (_req, res) => {
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || '1.0.0',
       database: 'disconnected',
+      cache: 'unknown',
       uptime: process.uptime(),
     });
   }
@@ -126,9 +140,11 @@ app.get('/api', (_req, res) => {
 
 // Mount authentication routes
 import storeRoutes from './domains/store/routes/store.routes';
+import menuRoutes from './domains/store/routes/menu.routes';
 const authRoutes = createAuthRoutes(prisma);
 app.use('/api/auth', authRoutes);
 app.use('/api/stores', storeRoutes);
+app.use('/api', menuRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {
@@ -186,38 +202,34 @@ const server = app.listen(port, host, () => {
 });
 
 // Graceful shutdown
+const gracefulShutdown = async () => {
+  logger.info('HTTP server closed');
+  
+  try {
+    await prisma.$disconnect();
+    logger.info('Database connection closed');
+  } catch (error) {
+    logger.error({ error }, 'Error closing database connection');
+  }
+  
+  try {
+    await redisClient.disconnect();
+    logger.info('Redis connection closed');
+  } catch (error) {
+    logger.error({ error }, 'Error closing Redis connection');
+  }
+  
+  process.exit(0);
+};
+
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  
-  server.close(async () => {
-    logger.info('HTTP server closed');
-    
-    try {
-      await prisma.$disconnect();
-      logger.info('Database connection closed');
-    } catch (error) {
-      logger.error({ error }, 'Error closing database connection');
-    }
-    
-    process.exit(0);
-  });
+  server.close(gracefulShutdown);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
-  
-  server.close(async () => {
-    logger.info('HTTP server closed');
-    
-    try {
-      await prisma.$disconnect();
-      logger.info('Database connection closed');
-    } catch (error) {
-      logger.error({ error }, 'Error closing database connection');
-    }
-    
-    process.exit(0);
-  });
+  server.close(gracefulShutdown);
 });
 
 // Handle uncaught exceptions

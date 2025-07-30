@@ -53,4 +53,58 @@ export class StoreRepository {
   private buildOrderByClause(sort: StoreSortOptions) {
     return { [sort.field]: sort.direction };
   }
+
+  async findByIdWithDetails(storeId: string) {
+    const store = await this.prisma.store.findUnique({
+      where: {
+        id: storeId,
+        isActive: true,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        menuItems: {
+          where: {
+            isAvailable: true,
+          },
+          select: {
+            category: true,
+          },
+        },
+        _count: {
+          select: {
+            orders: true,
+            menuItems: true,
+          },
+        },
+      },
+    });
+
+    if (!store) {
+      return null;
+    }
+
+    // Extract unique menu categories
+    const menuCategories = [...new Set(store.menuItems.map(item => item.category))];
+
+    return {
+      ...store,
+      menuCategories,
+      menuItems: undefined, // Remove the menu items array since we only needed categories
+    };
+  }
+
+  async findById(storeId: string): Promise<Store | null> {
+    return this.prisma.store.findUnique({
+      where: {
+        id: storeId,
+        isActive: true,
+      },
+    });
+  }
 }

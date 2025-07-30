@@ -1,5 +1,5 @@
 
-import { GetStoresQuery, GetStoresResponse } from '@vibe/shared';
+import { GetStoresQuery, GetStoresResponse, GetStoreDetailsResponse, NotFoundError } from '@vibe/shared';
 import { StoreRepository } from '../repos/store.repository';
 import { StoreSortOptions } from '../types/store.types';
 
@@ -38,6 +38,29 @@ export class StoreService {
       total, 
       page, 
       limit 
+    };
+  }
+
+  async getStoreDetails(storeId: string): Promise<GetStoreDetailsResponse> {
+    const store = await this.storeRepository.findByIdWithDetails(storeId);
+    
+    if (!store) {
+      throw new NotFoundError('Store not found or unavailable');
+    }
+
+    // Transform Prisma Decimal fields to numbers for JSON serialization
+    return {
+      ...store,
+      rating: store.rating ? Number(store.rating) : undefined,
+      totalOrders: store.totalOrders,
+      deliveryFee: Number(store.deliveryFee),
+      minimumOrder: Number(store.minimumOrder),
+      operatingHours: (store.operatingHours as Record<string, any>) || {},
+      email: store.email || undefined,
+      phone: store.phone || undefined,
+      description: store.description || undefined,
+      createdAt: store.createdAt.toISOString(),
+      updatedAt: store.updatedAt.toISOString(),
     };
   }
 
