@@ -21,7 +21,7 @@ const envSchema = z.object({
   
   // Authentication configuration
   JWT_SECRET: z.string().min(32).describe('JWT signing secret (minimum 32 characters)'),
-  JWT_EXPIRES_IN: z.string().default('1h').describe('JWT expiration time'),
+  JWT_EXPIRES_IN: z.string().default('15m').describe('JWT expiration time'),
   JWT_REFRESH_SECRET: z.string().min(32).describe('JWT refresh token secret (minimum 32 characters)'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d').describe('JWT refresh token expiration time'),
   
@@ -88,8 +88,32 @@ function parseEnv(): z.infer<typeof envSchema> {
 /**
  * Validated environment variables
  * This object provides type-safe access to all environment configuration
+ * Only validates when accessed in non-test environments or when explicitly requested
  */
-export const env = parseEnv();
+let _env: z.infer<typeof envSchema> | null = null;
+
+export const env = new Proxy({} as z.infer<typeof envSchema>, {
+  get(_target, prop: string) {
+    if (!_env) {
+      // Skip validation in test environment or if SKIP_ENV_VALIDATION is set
+      if (process.env.NODE_ENV === 'test' || process.env.SKIP_ENV_VALIDATION === 'true') {
+        return process.env[prop] || undefined;
+      }
+      _env = parseEnv();
+    }
+    return _env[prop as keyof typeof _env];
+  }
+});
+
+/**
+ * Force environment validation - useful for application startup
+ */
+export function validateEnv(): z.infer<typeof envSchema> {
+  if (!_env) {
+    _env = parseEnv();
+  }
+  return _env;
+}
 
 /**
  * Environment validation utilities for runtime checking

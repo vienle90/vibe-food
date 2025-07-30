@@ -44,6 +44,7 @@ export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 export const userSchema = z.object({
   id: UserIdSchema,
   email: z.string().email(),
+  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/),
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
   role: UserRoleSchema.default('CUSTOMER'),

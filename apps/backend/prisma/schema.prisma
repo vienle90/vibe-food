@@ -43,6 +43,7 @@ enum PaymentMethod {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  username  String   @unique @db.VarChar(20)
   password  String   // bcrypt hashed password
   firstName String   @db.VarChar(50)
   lastName  String   @db.VarChar(50)
@@ -56,14 +57,34 @@ model User {
   updatedAt DateTime @updatedAt
   
   // Relations
-  ownedStores Store[] @relation("StoreOwner")
-  orders      Order[] @relation("CustomerOrders")
+  ownedStores   Store[]        @relation("StoreOwner")
+  orders        Order[]        @relation("CustomerOrders")
+  refreshTokens RefreshToken[]
   
   // Indexes
   @@index([email])
+  @@index([username])
   @@index([role])
   @@index([isActive])
   @@map("users")
+}
+
+// RefreshToken entity - handles JWT refresh token rotation
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 // Store entity - represents restaurants/food establishments

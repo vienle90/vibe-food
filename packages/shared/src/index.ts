@@ -14,5 +14,11 @@ export * from './types/core.js';
 // API types and schemas  
 export * from './types/api.js';
 
+// Authentication types and schemas
+export * from './types/auth.js';
+
+// Error classes
+export * from './errors/index.js';
+
 // Re-export commonly used Zod utilities
 export { z } from 'zod';

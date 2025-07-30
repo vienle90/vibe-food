@@ -12,40 +12,6 @@ import {
  */
 
 /**
- * Authentication API schemas
- */
-export const loginRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-
-export type LoginRequest = z.infer<typeof loginRequestSchema>;
-
-export const registerRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  firstName: z.string().min(1).max(50),
-  lastName: z.string().min(1).max(50),
-  phone: z.string().regex(/^\+?[\d\s-()]+$/).optional(),
-});
-
-export type RegisterRequest = z.infer<typeof registerRequestSchema>;
-
-export const authResponseSchema = z.object({
-  user: z.object({
-    id: z.string(),
-    email: z.string(),
-    firstName: z.string(),
-    lastName: z.string(),
-    role: z.string(),
-  }),
-  accessToken: z.string(),
-  refreshToken: z.string(),
-});
-
-export type AuthResponse = z.infer<typeof authResponseSchema>;
-
-/**
  * Store API schemas
  */
 export const getStoresQuerySchema = z.object({
