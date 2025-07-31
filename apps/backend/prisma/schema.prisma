@@ -28,9 +28,11 @@ enum StoreCategory {
 
 enum OrderStatus {
   NEW
-  PROCESSING
-  SHIPPING
-  DONE
+  CONFIRMED
+  PREPARING
+  READY
+  PICKED_UP
+  DELIVERED
   CANCELLED
 }
 

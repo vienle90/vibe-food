@@ -32,7 +32,7 @@ export function MenuItemCard({ item, storeId }: MenuItemCardProps): ReactElement
           name: item.name,
           price: item.price,
           imageUrl: item.imageUrl,
-          storeId,
+          storeId: storeId as any,
         },
         quantity: 1,
       });

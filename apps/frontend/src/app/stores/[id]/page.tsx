@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { storeService } from '@/lib/api-services';
-import { StoreIdSchema } from '@vibe/shared';
 import { StoreDetailsClient } from './client';
 import type { ReactElement } from 'react';
 

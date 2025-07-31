@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   StoreCategorySchema,
+  StoreIdSchema,
   OrderStatusSchema,
   PaymentMethodSchema,
   paginationMetaSchema,
@@ -257,7 +258,7 @@ export type UploadImageResponse = z.infer<typeof uploadImageResponseSchema>;
  */
 
 export const createOrderRequestSchema = z.object({
-  storeId: z.string().cuid(),
+  storeId: StoreIdSchema,
   items: z.array(cartItemSchema).min(1),
   paymentMethod: PaymentMethodSchema.default('CASH_ON_DELIVERY'),
   deliveryAddress: z.string().min(1).max(200),

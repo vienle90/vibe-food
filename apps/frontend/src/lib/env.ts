@@ -6,7 +6,7 @@ import { z } from 'zod';
  */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  NEXT_PUBLIC_API_URL: z.string().url().default('http://localhost:3001'),
+  NEXT_PUBLIC_API_URL: z.string().url().default('http://localhost:3002'),
   NEXT_PUBLIC_APP_NAME: z.string().default('Vibe Food Ordering'),
   NEXT_PUBLIC_APP_VERSION: z.string().default('1.0.0'),
 });
@@ -15,12 +15,30 @@ const envSchema = z.object({
  * Parsed and validated environment variables
  * This will throw an error at build time if validation fails
  */
-export const env = envSchema.parse({
-  NODE_ENV: process.env.NODE_ENV,
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-  NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
-  NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
-});
+let env: z.infer<typeof envSchema>;
+
+// Skip validation in browser when SKIP_ENV_VALIDATION is set
+if (
+  (typeof globalThis !== 'undefined' && 'window' in globalThis) || 
+  process.env.NODE_ENV === 'test' || 
+  process.env.SKIP_ENV_VALIDATION === 'true'
+) {
+  env = {
+    NODE_ENV: (process.env.NODE_ENV as 'development' | 'test' | 'production') || 'development',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002',
+    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Vibe Food Ordering',
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+  };
+} else {
+  env = envSchema.parse({
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
+  });
+}
+
+export { env };
 
 /**
  * Type-safe environment variables for use throughout the application

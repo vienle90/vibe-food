@@ -12,24 +12,24 @@ import { z } from 'zod';
 
 /**
  * Branded types for IDs to prevent mixing different entity IDs
- * All IDs use CUID format for better performance and uniqueness
+ * Accepts both CUID format and readable IDs for development/testing
  */
-export const UserIdSchema = z.string().cuid().brand<'UserId'>();
+export const UserIdSchema = z.string().min(1).brand<'UserId'>();
 export type UserId = z.infer<typeof UserIdSchema>;
 
-export const StoreIdSchema = z.string().cuid().brand<'StoreId'>();
+export const StoreIdSchema = z.string().min(1).brand<'StoreId'>();
 export type StoreId = z.infer<typeof StoreIdSchema>;
 
-export const MenuItemIdSchema = z.string().cuid().brand<'MenuItemId'>();
+export const MenuItemIdSchema = z.string().min(1).brand<'MenuItemId'>();
 export type MenuItemId = z.infer<typeof MenuItemIdSchema>;
 
-export const OrderIdSchema = z.string().cuid().brand<'OrderId'>();
+export const OrderIdSchema = z.string().min(1).brand<'OrderId'>();
 export type OrderId = z.infer<typeof OrderIdSchema>;
 
-export const OrderItemIdSchema = z.string().cuid().brand<'OrderItemId'>();
+export const OrderItemIdSchema = z.string().min(1).brand<'OrderItemId'>();
 export type OrderItemId = z.infer<typeof OrderItemIdSchema>;
 
-export const RefreshTokenIdSchema = z.string().cuid().brand<'RefreshTokenId'>();
+export const RefreshTokenIdSchema = z.string().min(1).brand<'RefreshTokenId'>();
 export type RefreshTokenId = z.infer<typeof RefreshTokenIdSchema>;
 
 /**
@@ -56,7 +56,7 @@ export type UserRole = z.infer<typeof UserRoleSchema>;
 export const StoreCategorySchema = z.enum(['LUNCH', 'DINNER', 'COFFEE', 'TEA', 'DESSERT', 'FAST_FOOD']);
 export type StoreCategory = z.infer<typeof StoreCategorySchema>;
 
-export const OrderStatusSchema = z.enum(['NEW', 'PROCESSING', 'SHIPPING', 'DONE', 'CANCELLED']);
+export const OrderStatusSchema = z.enum(['NEW', 'CONFIRMED', 'PREPARING', 'READY', 'PICKED_UP', 'DELIVERED', 'CANCELLED']);
 export type OrderStatus = z.infer<typeof OrderStatusSchema>;
 
 export const PaymentMethodSchema = z.enum(['CASH_ON_DELIVERY', 'CREDIT_CARD', 'DIGITAL_WALLET']);

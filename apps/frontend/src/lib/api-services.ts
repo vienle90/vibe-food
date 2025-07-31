@@ -4,7 +4,14 @@ import type {
   GetStoresResponse,
   GetStoreDetailsResponse,
   GetMenuQuery,
-  GetMenuResponse
+  GetMenuResponse,
+  CreateOrderRequest,
+  CreateOrderResponse,
+  GetOrdersQuery,
+  GetOrdersResponse,
+  GetOrderDetailsResponse,
+  UpdateOrderStatusRequest,
+  UpdateOrderStatusResponse
 } from '@vibe/shared';
 
 /**
@@ -47,6 +54,67 @@ export const storeService = {
   async getStoreMenu(query: GetMenuQuery): Promise<GetMenuResponse> {
     const { storeId, ...params } = query;
     const response = await apiClient.get<GetMenuResponse>(`/api/stores/${storeId}/menu`, params);
+    return response;
+  },
+} as const;
+
+/**
+ * Order API services
+ */
+export const orderService = {
+  /**
+   * Create a new order
+   * 
+   * @param orderRequest - Order creation request data
+   * @returns Promise with order creation response
+   */
+  async createOrder(orderRequest: CreateOrderRequest): Promise<CreateOrderResponse> {
+    const response = await apiClient.post<CreateOrderResponse>('/api/orders', orderRequest);
+    return response;
+  },
+
+  /**
+   * Get order history with filtering
+   * 
+   * @param query - Query parameters for filtering orders
+   * @returns Promise with orders response
+   */
+  async getOrders(query: Partial<GetOrdersQuery> = {}): Promise<GetOrdersResponse> {
+    const response = await apiClient.get<GetOrdersResponse>('/api/orders', query);
+    return response;
+  },
+
+  /**
+   * Get order details by ID
+   * 
+   * @param orderId - Order ID
+   * @returns Promise with order details
+   */
+  async getOrderDetails(orderId: string): Promise<GetOrderDetailsResponse> {
+    const response = await apiClient.get<GetOrderDetailsResponse>(`/api/orders/${orderId}`);
+    return response;
+  },
+
+  /**
+   * Update order status
+   * 
+   * @param orderId - Order ID
+   * @param statusUpdate - Status update request
+   * @returns Promise with status update response  
+   */
+  async updateOrderStatus(orderId: string, statusUpdate: UpdateOrderStatusRequest): Promise<UpdateOrderStatusResponse> {
+    const response = await apiClient.put<UpdateOrderStatusResponse>(`/api/orders/${orderId}/status`, statusUpdate);
+    return response;
+  },
+
+  /**
+   * Cancel an order
+   * 
+   * @param orderId - Order ID
+   * @returns Promise with cancellation response
+   */
+  async cancelOrder(orderId: string): Promise<UpdateOrderStatusResponse> {
+    const response = await apiClient.post<UpdateOrderStatusResponse>(`/api/orders/${orderId}/cancel`, {});
     return response;
   },
 } as const;

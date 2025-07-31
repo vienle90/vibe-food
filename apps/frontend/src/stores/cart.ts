@@ -140,7 +140,7 @@ export const useCartStore = create<CartState>()(
       partialize: (state) => ({ items: state.items }), // Only persist items, not UI state
       onRehydrateStorage: () => (state) => {
         // Validate stored data on rehydration
-        if (state) {
+        if (state && state.items) {
           const result = z.array(cartItemSchema).safeParse(state.items);
           if (result.success) {
             state.items = result.data;

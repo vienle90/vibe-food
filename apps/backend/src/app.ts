@@ -141,10 +141,12 @@ app.get('/api', (_req, res) => {
 // Mount authentication routes
 import storeRoutes from './domains/store/routes/store.routes';
 import menuRoutes from './domains/store/routes/menu.routes';
+import { orderRoutes } from './domains/order/routes/order.routes';
 const authRoutes = createAuthRoutes(prisma);
 app.use('/api/auth', authRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api', menuRoutes);
+app.use('/api/orders', orderRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {

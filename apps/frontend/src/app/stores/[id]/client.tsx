@@ -7,10 +7,7 @@ import { CategoryNavigation } from '@/components/stores/CategoryNavigation';
 import { MenuSection } from '@/components/stores/MenuSection';
 import { CartButton } from '@/components/cart/CartButton';
 import { CartSheet } from '@/components/cart/CartSheet';
-import { StoreDetailsSkeleton } from '@/components/stores/StoreDetailsSkeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import type { GetStoreDetailsResponse, GetMenuResponse, StoreId } from '@vibe/shared';
+import type { GetStoreDetailsResponse, GetMenuResponse } from '@vibe/shared';
 
 // Type alias for menu item from API response
 type MenuItem = GetMenuResponse['menuItems'][0];
