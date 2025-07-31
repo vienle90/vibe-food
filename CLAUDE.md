@@ -144,6 +144,31 @@ cd apps/frontend && npm run dev
 **Root Cause**: Frontend dev server crashes or stops serving assets
 **Prevention**: Always verify dev server is running, restart when needed
 
+#### 6. ExactOptionalPropertyTypes Violations (NEW - January 2025)
+**Error Pattern**: `Type 'string | undefined' is not assignable to type 'string'`
+**Solution**: Use conditional assignment or spread operators for optional properties
+**Prevention**: Never assign `undefined` directly to optional properties
+
+#### 7. Prisma Decimal vs Number Type Mismatches (NEW - January 2025) 
+**Error Pattern**: `Type 'Decimal' is not comparable to type 'number'`
+**Solution**: Use `Prisma.Decimal` in interfaces for database numeric fields
+**Prevention**: Always match Prisma return types in interfaces
+
+#### 8. Route Parameter Undefined Checks (NEW - January 2025)
+**Error Pattern**: `Argument of type 'string | undefined' is not assignable to parameter of type 'string'`
+**Solution**: Add explicit `if (!param)` checks before using route parameters
+**Prevention**: Always validate route parameters before using them
+
+#### 9. UseEffect Missing Return Value (NEW - January 2025)
+**Error Pattern**: `Not all code paths return a value` in useEffect
+**Solution**: Add explicit `return undefined;` for conditional useEffect cleanup
+**Prevention**: Ensure all code paths in useEffect return something
+
+#### 10. Branded Type Casting in Frontend (NEW - January 2025)
+**Error Pattern**: `Type 'string' is not assignable to type 'string & BRAND<"MenuItemId">'`
+**Solution**: Use `as any` type assertions sparingly for UI components
+**Prevention**: Use type assertions only when necessary for branded types in frontend
+
 ### Error Prevention Checklist (MUST FOLLOW)
 
 Before implementing any feature:

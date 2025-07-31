@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ReactElement, ReactNode } from 'react';
 import { RootProviders } from '@/lib/providers';
+import { Header } from '@/components/common/Header';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: RootLayoutProps): ReactElement 
       <body>
         <div id="root">
           <RootProviders>
-            {children}
+            <Header />
+            <main className="min-h-screen">
+              {children}
+            </main>
           </RootProviders>
         </div>
       </body>

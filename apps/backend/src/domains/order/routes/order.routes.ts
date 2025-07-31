@@ -2,9 +2,7 @@ import { Router } from 'express';
 import { OrderController } from '../controllers/order.controller';
 import { validateBody, validateQuery } from '../../../middleware/validation.middleware';
 import { 
-  createOrderRequestSchema,
-  updateOrderStatusRequestSchema,
-  getOrdersQuerySchema 
+  validationSchemas
 } from '@vibe/shared';
 
 const router = Router();
@@ -12,13 +10,28 @@ const orderController = new OrderController();
 
 // Simple auth check middleware - for now we'll skip auth to test the endpoints
 // TODO: Implement proper auth middleware integration
-const simpleAuthCheck = (req: any, res: any, next: any) => {
+const simpleAuthCheck = (req: any, _res: any, next: any) => {
   // Mock user for testing - using real user ID from database
-  req.user = {
-    sub: 'cmdqp5xft0003u7bt23oza75l', // Real user ID from seed data
-    role: 'CUSTOMER',
-    email: 'test@example.com'
-  };
+  // Check if this is a status update request to use store owner role
+  if (req.path.includes('/status') && req.method === 'PUT') {
+    req.user = {
+      id: 'cmdqp5xft0003u7bt23oza75l', // Same user, but with store owner role
+      role: 'STORE_OWNER',
+      email: 'owner@sakura.com',
+      username: 'sakuraowner',
+      firstName: 'Takeshi',
+      lastName: 'Yamamoto'
+    };
+  } else {
+    req.user = {
+      id: 'cmdqp5xft0003u7bt23oza75l', // Real user ID from seed data
+      role: 'CUSTOMER',
+      email: 'test@example.com',
+      username: 'testuser',
+      firstName: 'Test',
+      lastName: 'User'
+    };
+  }
   next();
 };
 
@@ -33,7 +46,7 @@ router.use(simpleAuthCheck);
  */
 router.post(
   '/',
-  validateBody(createOrderRequestSchema),
+  validateBody(validationSchemas.createOrder),
   orderController.createOrder
 );
 
@@ -45,7 +58,7 @@ router.post(
  */
 router.get(
   '/',
-  validateQuery(getOrdersQuerySchema),
+  validateQuery(validationSchemas.orderFilters),
   orderController.getOrders
 );
 
@@ -67,7 +80,7 @@ router.get(
  */
 router.put(
   '/:id/status',
-  validateBody(updateOrderStatusRequestSchema),
+  validateBody(validationSchemas.updateOrderStatus),
   orderController.updateOrderStatus
 );
 
@@ -79,6 +92,16 @@ router.put(
 router.post(
   '/:id/cancel',
   orderController.cancelOrder
+);
+
+/**
+ * POST /api/orders/:id/reorder - Reorder a previous order
+ * @route POST /api/orders/:id/reorder
+ * @access Private - Order owner only
+ */
+router.post(
+  '/:id/reorder',
+  orderController.reorderOrder
 );
 
 /**

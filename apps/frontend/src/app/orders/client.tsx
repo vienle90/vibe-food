@@ -2,12 +2,13 @@
 
 import { ReactElement, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Package, ChefHat, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Calendar, Package, ChefHat, Truck, CheckCircle, XCircle, Clock, RotateCcw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ReorderModal } from '@/components/orders/ReorderModal';
 import { orderService } from '@/lib/api-services';
 import { formatCurrency } from '@/lib/utils';
 import type { GetOrdersResponse, OrderStatus } from '@vibe/shared';
@@ -34,6 +35,10 @@ export function OrderHistoryClient(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [reorderModal, setReorderModal] = useState<{
+    orderId: string;
+    orderNumber: string;
+  } | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -173,11 +178,32 @@ export function OrderHistoryClient(): ReactElement {
 
                 {/* Order Summary */}
                 <div className="flex justify-between items-center pt-2 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    {order.itemCount} item{order.itemCount > 1 ? 's' : ''}
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      {order.itemCount} item{order.itemCount > 1 ? 's' : ''}
+                    </div>
+                    <div className="font-semibold">
+                      {formatCurrency(order.total)}
+                    </div>
                   </div>
-                  <div className="font-semibold">
-                    {formatCurrency(order.total)}
+                  
+                  {/* Quick Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReorderModal({
+                          orderId: order.id,
+                          orderNumber: order.orderNumber,
+                        });
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </Button>
                   </div>
                 </div>
 
@@ -205,6 +231,16 @@ export function OrderHistoryClient(): ReactElement {
             {loading ? 'Loading...' : 'Load More Orders'}
           </Button>
         </div>
+      )}
+
+      {/* Reorder Modal */}
+      {reorderModal && (
+        <ReorderModal
+          orderId={reorderModal.orderId}
+          orderNumber={reorderModal.orderNumber}
+          isOpen={true}
+          onClose={() => setReorderModal(null)}
+        />
       )}
     </div>
   );

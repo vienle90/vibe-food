@@ -4,11 +4,13 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import pino from 'pino';
+import { createServer } from 'http';
 import { env } from '@vibe/shared';
 import { PrismaClient } from '@prisma/client';
 import { AppError, isOperationalError, createErrorResponse } from '@vibe/shared';
 import { createAuthRoutes } from './domains/auth/index.js';
 import { redisClient } from './infrastructure/cache/redis.client';
+import { initializeWebSocketService } from './infrastructure/websocket/websocket.service';
 
 // Initialize logger
 const logger = pino({
@@ -195,17 +197,30 @@ app.use((error: Error, req: express.Request, res: express.Response, _next: expre
 const port = env.PORT;
 const host = env.HOST;
 
-const server = app.listen(port, host, () => {
+// Create HTTP server for WebSocket integration
+const httpServer = createServer(app);
+
+// Initialize WebSocket service
+const webSocketService = initializeWebSocketService(httpServer);
+
+const server = httpServer.listen(port, host, () => {
   logger.info({
     port,
     host,
     nodeEnv: env.NODE_ENV,
-  }, `🚀 Vibe Backend API started`);
+  }, `🚀 Vibe Backend API with WebSocket started`);
 });
 
 // Graceful shutdown
 const gracefulShutdown = async () => {
   logger.info('HTTP server closed');
+  
+  try {
+    webSocketService.close();
+    logger.info('WebSocket service closed');
+  } catch (error) {
+    logger.error({ error }, 'Error closing WebSocket service');
+  }
   
   try {
     await prisma.$disconnect();

@@ -92,8 +92,8 @@ export class AuthMiddleware {
           email: payload.email,
           username: payload.username,
           role: payload.role,
-          firstName: '',
-          lastName: '',
+          firstName: payload.firstName,
+          lastName: payload.lastName,
         };
 
         next();
@@ -192,8 +192,8 @@ export class AuthMiddleware {
             email: payload.email,
             username: payload.username,
             role: payload.role,
-            firstName: '',
-            lastName: '',
+            firstName: payload.firstName,
+            lastName: payload.lastName,
           };
         }
         

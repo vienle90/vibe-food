@@ -3,6 +3,7 @@
 import { ReactElement, ReactNode, useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from 'sonner';
 import { createQueryClient } from './query-client';
 import { isDevelopment } from './env';
 
@@ -54,6 +55,12 @@ export function RootProviders({ children }: RootProvidersProps): ReactElement {
   return (
     <QueryProvider>
       {children}
+      <Toaster 
+        position="top-right" 
+        expand={true}
+        richColors={true}
+        closeButton={true}
+      />
     </QueryProvider>
   );
 }

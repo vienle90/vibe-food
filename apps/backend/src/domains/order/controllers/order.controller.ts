@@ -15,7 +15,7 @@ export class OrderController {
    */
   createOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = (req.user as any)?.sub; // User ID from JWT token
+      const userId = req.user!.id; // User ID from JWT token
       const orderRequest: CreateOrderRequest = req.body;
 
       const order = await this.orderService.createOrder(userId, orderRequest);
@@ -47,15 +47,26 @@ export class OrderController {
    */
   getOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!.sub;
+      const userId = req.user!.id;
       const userRole = req.user!.role;
       
-      const filters = {
-        status: req.query.status as OrderStatus | undefined,
-        storeId: req.query.storeId as string | undefined,
+      const filters: {
+        status?: OrderStatus;
+        storeId?: string;
+        page: number;
+        limit: number;
+      } = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
       };
+      
+      if (req.query.status) {
+        filters.status = req.query.status as OrderStatus;
+      }
+      
+      if (req.query.storeId) {
+        filters.storeId = req.query.storeId as string;
+      }
 
       const result = await this.orderService.getOrders(userId, userRole, filters);
 
@@ -85,10 +96,18 @@ export class OrderController {
   /**
    * GET /api/orders/:id - Get order details by ID
    */
-  getOrderById = async (req: Request, res: Response, next: NextFunction) => {
+  getOrderById = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
       const { id } = req.params;
-      const userId = req.user!.sub;
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Order ID is required',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const userId = req.user!.id;
       const userRole = req.user!.role;
 
       const order = await this.orderService.getOrderDetails(id, userId, userRole);
@@ -139,10 +158,18 @@ export class OrderController {
   /**
    * PUT /api/orders/:id/status - Update order status
    */
-  updateOrderStatus = async (req: Request, res: Response, next: NextFunction) => {
+  updateOrderStatus = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
       const { id } = req.params;
-      const userId = req.user!.sub;
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Order ID is required',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const userId = req.user!.id;
       const userRole = req.user!.role;
       const updateRequest: UpdateOrderStatusRequest = req.body;
 
@@ -166,10 +193,17 @@ export class OrderController {
   /**
    * GET /api/orders/store/:storeId/stats - Get order statistics for store owners
    */
-  getStoreOrderStats = async (req: Request, res: Response, next: NextFunction) => {
+  getStoreOrderStats = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
       const { storeId } = req.params;
-      const userId = req.user!.sub;
+      if (!storeId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Store ID is required',
+          timestamp: new Date().toISOString(),
+        });
+      }
       const userRole = req.user!.role;
 
       // Only store owners and admins can access stats
@@ -210,10 +244,18 @@ export class OrderController {
   /**
    * POST /api/orders/:id/cancel - Cancel an order (customer-facing endpoint)
    */
-  cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
+  cancelOrder = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
       const { id } = req.params;
-      const userId = req.user!.sub;
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Order ID is required',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const userId = req.user!.id;
       const userRole = req.user!.role;
 
       const result = await this.orderService.updateOrderStatus(
@@ -227,6 +269,35 @@ export class OrderController {
         success: true,
         data: result,
         message: 'Order cancelled successfully',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * POST /api/orders/:id/reorder - Reorder a previous order
+   */
+  reorderOrder = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Order ID is required',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const userId = req.user!.id;
+
+      const result = await this.orderService.reorderOrder(id, userId);
+
+      res.json({
+        success: true,
+        data: result,
+        message: 'Items added to cart successfully',
         timestamp: new Date().toISOString(),
       });
     } catch (error) {

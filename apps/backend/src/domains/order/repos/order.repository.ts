@@ -18,7 +18,7 @@ export interface OrderWithDetails extends Order {
     menuItem: {
       id: string;
       name: string;
-      price: number;
+      price: Prisma.Decimal;
       imageUrl: string | null;
     };
   }>;
@@ -51,7 +51,7 @@ export class OrderRepository {
       });
 
       // Create order items
-      const createdItems = await Promise.all(
+      await Promise.all(
         orderItems.map((item) =>
           tx.orderItem.create({
             data: {
@@ -173,13 +173,19 @@ export class OrderRepository {
     status: OrderStatus,
     notes?: string
   ): Promise<Order> {
+    const updateData: Prisma.OrderUpdateInput = { status };
+    
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+    
+    if (status === 'DELIVERED') {
+      updateData.actualDeliveryTime = new Date();
+    }
+    
     return await this.prisma.order.update({
       where: { id: orderId },
-      data: {
-        status,
-        notes: notes || undefined,
-        actualDeliveryTime: status === 'DELIVERED' ? new Date() : undefined,
-      },
+      data: updateData,
     });
   }
 
@@ -207,8 +213,13 @@ export class OrderRepository {
     page: number = 1,
     limit: number = 20
   ): Promise<{ orders: Order[]; total: number }> {
+    const filters: OrderFilters = { storeId };
+    if (status !== undefined) {
+      filters.status = status;
+    }
+    
     return this.findMany(
-      { storeId, status },
+      filters,
       page,
       limit
     );

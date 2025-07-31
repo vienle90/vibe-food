@@ -117,6 +117,47 @@ export const orderService = {
     const response = await apiClient.post<UpdateOrderStatusResponse>(`/api/orders/${orderId}/cancel`, {});
     return response;
   },
+
+  /**
+   * Reorder a previous order
+   * 
+   * @param orderId - Order ID to reorder
+   * @returns Promise with reorder response containing available and unavailable items
+   */
+  async reorderOrder(orderId: string): Promise<{
+    availableItems: Array<{
+      menuItemId: string;
+      name: string;
+      quantity: number;
+      price: number;
+    }>;
+    unavailableItems: Array<{
+      menuItemId: string;
+      name: string;
+      quantity: number;
+      reason: string;
+    }>;
+    storeId: string;
+    storeName: string;
+  }> {
+    const response = await apiClient.post<{
+      availableItems: Array<{
+        menuItemId: string;
+        name: string;
+        quantity: number;
+        price: number;
+      }>;
+      unavailableItems: Array<{
+        menuItemId: string;
+        name: string;
+        quantity: number;
+        reason: string;
+      }>;
+      storeId: string;
+      storeName: string;
+    }>(`/api/orders/${orderId}/reorder`, {});
+    return response;
+  },
 } as const;
 
 /**

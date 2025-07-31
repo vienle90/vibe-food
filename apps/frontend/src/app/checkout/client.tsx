@@ -105,10 +105,10 @@ export function CheckoutClient(): ReactElement {
     setError(null);
 
     try {
-      // Prepare order request - use full cart items as expected by API
+      // Prepare order request - cart items already have the correct structure
       const orderRequest: CreateOrderRequest = {
         storeId,
-        items: items, // Send full CartItem objects as the API expects
+        items: items, // Cart items already match the expected schema
         paymentMethod: formData.paymentMethod as PaymentMethod,
         deliveryAddress: formData.deliveryAddress,
         customerPhone: formData.customerPhone,
@@ -116,11 +116,15 @@ export function CheckoutClient(): ReactElement {
       };
 
       // Create order
+      console.log('Creating order with request:', orderRequest);
       const response = await orderService.createOrder(orderRequest);
+      console.log('Order created successfully:', response);
       
       // Clear cart and redirect to confirmation
       clearCart();
-      router.push(`/orders/${response.orderId}?confirmed=true`);
+      const redirectUrl = `/orders/${response.orderId}?confirmed=true`;
+      console.log('Redirecting to:', redirectUrl);
+      router.push(redirectUrl);
       
     } catch (err: any) {
       setError(err.message || 'Failed to place order. Please try again.');
