@@ -94,9 +94,13 @@ let _env: z.infer<typeof envSchema> | null = null;
 export const env = new Proxy({} as z.infer<typeof envSchema>, {
   get(_target, prop: string) {
     if (!_env) {
-      // Skip validation in test environment or if SKIP_ENV_VALIDATION is set
-      if (process.env.NODE_ENV === 'test' || process.env.SKIP_ENV_VALIDATION === 'true') {
-        return process.env[prop] || undefined;
+      // Skip validation in browser environment, test environment, or if SKIP_ENV_VALIDATION is set
+      if (
+        (typeof globalThis !== 'undefined' && 'window' in globalThis) || // Browser environment
+        process.env.NODE_ENV === 'test' || 
+        process.env.SKIP_ENV_VALIDATION === 'true'
+      ) {
+        return process.env?.[prop] || undefined;
       }
       _env = parseEnv();
     }

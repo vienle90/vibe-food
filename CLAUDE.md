@@ -49,6 +49,130 @@ Avoid building functionality on speculation. Implement features only when they a
 
 ## 🤖 AI Assistant Guidelines
 
+### Common TypeScript Errors and Solutions (CRITICAL LESSONS LEARNED)
+
+Based on real implementation experience, these are the most frequent errors that occur on first implementation attempts and their solutions:
+
+#### 1. Type Mismatches Between Frontend and Shared Packages
+**Error Pattern**: `Type 'string' is not assignable to type 'StoreId'` or similar branded type errors
+```typescript
+// ❌ Common mistake - using string directly where branded type expected
+const storeId: StoreId = params.id; // Error: string not assignable to StoreId
+
+// ✅ Solution - Bypass validation for route params or validate properly
+const storeId = params.id; // Use as string directly
+// OR validate if needed:
+const storeId = StoreIdSchema.parse(params.id);
+```
+
+**Root Cause**: Route parameters come as strings but schema expects branded types (CUID format)
+**Prevention**: Use string types for route params, validate only when necessary
+
+#### 2. Environment Validation Triggering in Browser
+**Error Pattern**: `Environment validation failed` in browser console
+```typescript
+// ❌ Problematic - validation runs in browser
+export const env = envSchema.parse(process.env);
+
+// ✅ Solution - Skip validation in browser/test environments
+if (
+  (typeof globalThis !== 'undefined' && 'window' in globalThis) || // Browser
+  process.env.NODE_ENV === 'test' || 
+  process.env.SKIP_ENV_VALIDATION === 'true'
+) {
+  return process.env?.[prop] || undefined;
+}
+```
+
+**Root Cause**: Shared packages try to validate backend env vars in frontend
+**Prevention**: Always check environment before validation, add SKIP_ENV_VALIDATION flag
+
+#### 3. Zustand Store Infinite Loop (getSnapshot errors)
+**Error Pattern**: `Cannot access store.getState before initialization` or infinite re-renders
+```typescript
+// ❌ Problematic - creates new object on every render
+export const useCartActions = () => useCartStore((state) => ({
+  addItem: state.addItem,
+  updateQuantity: state.updateQuantity,
+  removeItem: state.removeItem,
+}));
+
+// ✅ Solution - Individual action hooks
+export const useAddToCart = () => useCartStore((state) => state.addItem);
+export const useUpdateCartQuantity = () => useCartStore((state) => state.updateQuantity);
+export const useRemoveFromCart = () => useCartStore((state) => state.removeItem);
+```
+
+**Root Cause**: Selector functions return new objects causing re-renders
+**Prevention**: Use individual selectors, avoid object returns in selectors
+
+#### 4. Next.js Server/Client Component Hydration Issues  
+**Error Pattern**: Hydration mismatches or `useEffect` warnings
+```typescript
+// ❌ Problematic - trying to use client state in server component
+export default function StoreDetailsPage({ params }: { params: { id: string } }) {
+  const cart = useCartStore(); // Error: can't use hooks in server component
+}
+
+// ✅ Solution - Separate client and server logic
+// page.tsx (Server Component)
+export default async function StoreDetailsPage({ params }: { params: { id: string } }) {
+  const data = await fetchStoreData(params.id);
+  return <StoreDetailsClient initialData={data} />;
+}
+
+// client.tsx (Client Component)  
+'use client';
+export function StoreDetailsClient({ initialData }: Props) {
+  const cart = useCartStore(); // OK: client component can use hooks
+}
+```
+
+**Root Cause**: Mixing server and client component patterns
+**Prevention**: Always separate server data fetching from client interactions
+
+#### 5. Asset Loading Issues (CSS/JS 404 errors)
+**Error Pattern**: `MIME type ('text/html') is not a supported stylesheet MIME type`
+```bash
+# ❌ Problem - dev server not running or crashed
+localhost:3000/_next/static/css/app/layout.css → 404
+
+# ✅ Solution - Restart dev server properly
+cd apps/frontend && npm run dev
+```
+
+**Root Cause**: Frontend dev server crashes or stops serving assets
+**Prevention**: Always verify dev server is running, restart when needed
+
+### Error Prevention Checklist (MUST FOLLOW)
+
+Before implementing any feature:
+
+1. **Type Safety Check**:
+   - [ ] Verify shared types match between frontend/backend
+   - [ ] Use string types for route params, not branded types
+   - [ ] Check if branded type validation is actually needed
+
+2. **Environment Setup**:
+   - [ ] Add `SKIP_ENV_VALIDATION=true` to frontend .env.local
+   - [ ] Verify both frontend and backend servers are running
+   - [ ] Check browser console for asset loading errors
+
+3. **State Management**:
+   - [ ] Use individual selectors instead of object selectors
+   - [ ] Separate server components from client components
+   - [ ] Test store hooks in isolation first
+
+4. **Component Architecture**:
+   - [ ] Server components for data fetching only
+   - [ ] Client components for interactivity only  
+   - [ ] Use 'use client' directive properly
+
+5. **Testing Strategy**:
+   - [ ] Test with empty state first
+   - [ ] Verify error boundaries work
+   - [ ] Check console for hydration warnings
+
 ### Search Command Requirements
 **CRITICAL**: Always use `rg` (ripgrep) instead of traditional `grep` and `find` commands:
 
@@ -97,56 +221,23 @@ rg --files -g "*.tsx"
 ### Key Patterns
 
 #### 1. API-First Development
-All endpoints must be defined with TypeScript interfaces before implementation:
-
-```typescript
-// packages/shared/src/types/api.ts
-export interface GetStoresRequest {
-  category?: string;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
-
-export interface GetStoresResponse {
-  stores: Store[];
-  pagination: PaginationMeta;
-  filters: FilterOptions;
-}
-```
+All endpoints must be defined with TypeScript interfaces before implementation
 
 #### 2. Shared Type Safety
-Use shared types for all API communication:
+Use shared types for all API communication
 
 ```typescript
-// Backend controller
 export const getStores = async (
   req: Request<{}, GetStoresResponse, {}, GetStoresRequest>, 
   res: Response<GetStoresResponse>
 ) => {
-  // Implementation
 }
 
-// Frontend API call
 const stores = await apiClient.get<GetStoresResponse>('/api/stores', { params: query });
 ```
 
 #### 3. Database-First Schema Design
-Prisma schema drives the entire data model:
-
-```prisma
-model Store {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  category    Category
-  isActive    Boolean  @default(true)
-  menuItems   MenuItem[]
-  orders      Order[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-```
+Prisma schema drives the entire data model
 
 ## Backend Development Guidelines
 
@@ -175,101 +266,17 @@ apps/backend/src/
 ```
 
 ### Authentication Flow
-JWT tokens with refresh token rotation pattern:
-
-```typescript
-// Middleware usage
-app.use('/api/protected', authenticateToken);
-
-// Token refresh endpoint
-app.post('/api/auth/refresh', refreshTokenHandler);
-```
+JWT tokens with refresh token rotation pattern
 
 ### Error Handling Pattern
-Consistent error responses across all endpoints:
-
-```typescript
-export class AppError extends Error {
-  constructor(
-    public statusCode: number,
-    public message: string,
-    public code: string = 'INTERNAL_ERROR',
-    public isOperational = true
-  ) {
-    super(message);
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class ValidationError extends AppError {
-  constructor(message: string, errors: any[] = []) {
-    super(400, message, 'VALIDATION_ERROR');
-    this.errors = errors;
-  }
-}
-
-// Usage in controllers
-if (!store) {
-  throw new AppError(404, 'Store not found', 'STORE_NOT_FOUND');
-}
-```
+Consistent error responses across all endpoints
 
 ### Database Operations
-Use Prisma Client with proper error handling:
-
-```typescript
-export const storeService = {
-  async findMany(filters: StoreFilters) {
-    try {
-      return await prisma.store.findMany({
-        where: buildWhereClause(filters),
-        include: { menuItems: true }
-      });
-    } catch (error) {
-      throw new AppError(500, 'Database operation failed', 'DB_ERROR');
-    }
-  }
-};
-```
+Use Prisma Client with proper error handling
 
 ### Input Validation with Zod (MANDATORY)
-```typescript
-import { z } from 'zod';
-
-// Schema-based validation for all external inputs
-const createStoreSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  category: z.enum(['lunch', 'dinner', 'coffee', 'tea']),
-  address: z.string().min(1),
-});
-
-export function validateCreateStore(data: unknown) {
-  return createStoreSchema.parse(data);
-}
-```
 
 ### Structured Logging with Pino
-```typescript
-import pino from 'pino';
-
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: process.env.NODE_ENV === 'development' 
-    ? { target: 'pino-pretty' }
-    : undefined,
-  redact: ['password', 'token', 'authorization']
-});
-
-// Use child loggers for context
-export function createLogger(context: object) {
-  return logger.child(context);
-}
-
-// Example usage
-const storeLogger = createLogger({ module: 'StoreService' });
-storeLogger.info({ storeId: '123' }, 'Store created successfully');
-```
 
 ## Frontend Development Guidelines
 
@@ -325,43 +332,6 @@ function MyComponent(): JSX.Element {  // Cannot find namespace 'JSX'
 ### Component Organization
 Use Shadcn/ui as the base, create custom components as needed:
 
-```typescript
-/**
- * StoreCard component displays store information with clickable interaction.
- * 
- * @component
- * @example
- * ```tsx
- * <StoreCard 
- *   store={store} 
- *   onSelect={handleStoreSelect}
- * />
- * ```
- */
-interface StoreCardProps {
-  /** Store data to display */
-  store: Store;
-  /** Callback when store is selected */
-  onSelect: (store: Store) => void;
-}
-
-export const StoreCard = ({ store, onSelect }: StoreCardProps): ReactElement => {
-  return (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow">
-      <CardHeader>
-        <CardTitle>{store.name}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{store.description}</p>
-        <Button onClick={() => onSelect(store)} className="mt-4">
-          View Menu
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
-```
-
 ### State Management Hierarchy (MUST FOLLOW)
 1. **Local State**: `useState` ONLY for component-specific state
 2. **Context**: For cross-component state within a single feature
@@ -370,87 +340,9 @@ export const StoreCard = ({ store, onSelect }: StoreCardProps): ReactElement => 
 5. **Global State**: Zustand ONLY when truly needed app-wide
 
 ### Server State Pattern (TanStack Query)
-```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-function useStores(filters: StoreFilters) {
-  return useQuery({
-    queryKey: ['stores', filters],
-    queryFn: async () => {
-      const response = await apiClient.get<GetStoresResponse>('/api/stores', {
-        params: filters
-      });
-      return response;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 3,
-  });
-}
-
-function useCreateOrder() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (orderData: CreateOrderRequest) => {
-      const response = await apiClient.post<Order>('/api/orders', orderData);
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    },
-  });
-}
-```
 
 ### API Integration
 Centralized API client with proper error handling:
-
-```typescript
-// lib/api-client.ts
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public code?: string
-  ) {
-    super(message);
-  }
-}
-
-export const apiClient = {
-  async get<T>(url: string, config?: RequestConfig): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      ...defaultConfig,
-      ...config
-    });
-    
-    if (!response.ok) {
-      throw new ApiError(response.status, await response.text());
-    }
-    
-    return response.json();
-  },
-  
-  async post<T>(url: string, data: unknown, config?: RequestConfig): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...defaultConfig.headers,
-        ...config?.headers
-      },
-      body: JSON.stringify(data),
-      ...config
-    });
-    
-    if (!response.ok) {
-      throw new ApiError(response.status, await response.text());
-    }
-    
-    return response.json();
-  }
-};
-```
 
 ## 🛡️ Data Validation with Zod (MANDATORY FOR ALL EXTERNAL DATA)
 
@@ -460,165 +352,8 @@ export const apiClient = {
 - **MUST fail fast**: Validate at system boundaries, throw errors immediately
 - **MUST use type inference**: Always derive TypeScript types from Zod schemas
 
-### Schema Patterns (MANDATORY)
-```typescript
-// packages/shared/src/schemas/core.ts
-import { z } from 'zod';
-
-// MUST use branded types for ALL IDs
-export const StoreIdSchema = z.string().cuid().brand<'StoreId'>();
-export type StoreId = z.infer<typeof StoreIdSchema>;
-
-export const UserIdSchema = z.string().cuid().brand<'UserId'>();
-export type UserId = z.infer<typeof UserIdSchema>;
-
-// Environment validation (REQUIRED)
-export const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']),
-  DATABASE_URL: z.string().min(1),
-  JWT_SECRET: z.string().min(32),
-  REDIS_URL: z.string().url().optional(),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-});
-
-// API response validation
-export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
-  z.object({
-    success: z.boolean(),
-    data: dataSchema,
-    error: z.string().optional(),
-    timestamp: z.string().datetime(),
-  });
-
-// Domain schemas
-export const storeSchema = z.object({
-  id: StoreIdSchema,
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  category: z.enum(['lunch', 'dinner', 'coffee', 'tea', 'dessert']),
-  isActive: z.boolean().default(true),
-  address: z.string().min(1),
-  phone: z.string().regex(/^\+?[\d\s-()]+$/).optional(),
-  rating: z.number().min(0).max(5).optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
-
-export type Store = z.infer<typeof storeSchema>;
-
-export const menuItemSchema = z.object({
-  id: z.string().cuid(),
-  storeId: StoreIdSchema,
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  price: z.number().positive(),
-  category: z.string().min(1).max(50),
-  isAvailable: z.boolean().default(true),
-  imageUrl: z.string().url().optional(),
-});
-
-export type MenuItem = z.infer<typeof menuItemSchema>;
-```
-
-### Form Validation (Frontend)
-```typescript
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-
-const createOrderSchema = z.object({
-  storeId: StoreIdSchema,
-  items: z.array(z.object({
-    menuItemId: z.string().cuid(),
-    quantity: z.number().int().min(1).max(10),
-  })).min(1),
-  deliveryAddress: z.string().min(1).max(200),
-  notes: z.string().max(500).optional(),
-});
-
-type CreateOrderForm = z.infer<typeof createOrderSchema>;
-
-export const OrderForm = (): ReactElement => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateOrderForm>({
-    resolver: zodResolver(createOrderSchema),
-    mode: 'onBlur',
-  });
-
-  const onSubmit = async (data: CreateOrderForm): Promise<void> => {
-    try {
-      await createOrder(data);
-    } catch (error) {
-      // Handle error
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      {/* Form fields with proper error handling */}
-    </form>
-  );
-};
-```
-
 ### Backend Validation Middleware
-```typescript
-// apps/backend/src/middleware/validation.ts
-import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-
-export const validateBody = <T extends z.ZodTypeAny>(schema: T) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      req.body = schema.parse(req.body);
-      next();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({
-          success: false,
-          error: 'Validation failed',
-          details: error.errors,
-        });
-      } else {
-        next(error);
-      }
-    }
-  };
-};
-
-export const validateQuery = <T extends z.ZodTypeAny>(schema: T) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      req.query = schema.parse(req.query);
-      next();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({
-          success: false,
-          error: 'Invalid query parameters',
-          details: error.errors,
-        });
-      } else {
-        next(error);
-      }
-    }
-  };
-};
-
-// Usage in routes
-app.get('/api/stores', 
-  validateQuery(getStoresQuerySchema), 
-  getStoresController
-);
-
-app.post('/api/stores', 
-  authenticateToken,
-  validateBody(createStoreSchema), 
-  createStoreController
-);
-```
+Use validateBody() and validateQuery() middleware functions with Zod schemas for all endpoints.
 
 ## MCP Integration Guide
 
@@ -683,273 +418,21 @@ shadcn:get_component_demo card
 ### Backend Testing (Native Node.js Test Runner)
 
 #### Test Organization
-```typescript
-// apps/backend/src/domains/store/__tests__/store.service.test.ts
-import { describe, it, before, after, mock } from 'node:test';
-import assert from 'node:assert/strict';
-import { StoreService } from '../store.service.js';
-
-describe('StoreService', () => {
-  let storeService: StoreService;
-  let mockRepo: any;
-
-  before(async () => {
-    mockRepo = {
-      findMany: mock.fn(() => Promise.resolve([
-        { id: 'store1', name: 'Test Store', category: 'lunch' }
-      ])),
-      create: mock.fn((data) => Promise.resolve({ id: 'new-id', ...data }))
-    };
-    storeService = new StoreService(mockRepo);
-  });
-
-  it('should return filtered stores by category', async () => {
-    const stores = await storeService.findByCategory('lunch');
-    
-    assert.equal(stores.length, 1);
-    assert.equal(stores[0].category, 'lunch');
-    assert.equal(mockRepo.findMany.mock.calls.length, 1);
-  });
-
-  it('should create new store with valid data', async () => {
-    const storeData = {
-      name: 'New Store',
-      category: 'coffee' as const,
-      address: '123 Main St'
-    };
-
-    const result = await storeService.create(storeData);
-    
-    assert.equal(result.name, storeData.name);
-    assert.equal(mockRepo.create.mock.calls.length, 1);
-  });
-
-  it('should throw validation error for invalid category', async () => {
-    const invalidData = {
-      name: 'Test Store',
-      category: 'invalid' as any,
-      address: '123 Main St'
-    };
-
-    await assert.rejects(
-      () => storeService.create(invalidData),
-      /Invalid category/
-    );
-  });
-});
-```
+Use Native Node.js test runner with describe/it blocks, mock dependencies, test all scenarios including errors.
 
 #### Integration Testing
-```typescript
-// apps/backend/src/__tests__/integration/stores.test.ts
-import { describe, it, before, after } from 'node:test';
-import assert from 'node:assert/strict';
-import { app } from '../app.js';
-
-describe('Stores API Integration', () => {
-  let server: any;
-
-  before(async () => {
-    server = app.listen(0); // Use random port
-  });
-
-  after(async () => {
-    await server.close();
-  });
-
-  it('should return stores with correct filtering', async () => {
-    const response = await fetch(`http://localhost:${server.address().port}/api/stores?category=lunch`);
-    const data = await response.json();
-
-    assert.equal(response.status, 200);
-    assert.equal(data.success, true);
-    assert(Array.isArray(data.data.stores));
-  });
-
-  it('should return 401 for protected endpoints without auth', async () => {
-    const response = await fetch(`http://localhost:${server.address().port}/api/stores`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Test Store' })
-    });
-
-    assert.equal(response.status, 401);
-  });
-});
-```
+Test complete request/response cycles with temporary server instance, verify status codes and response structure.
 
 ### Frontend Testing (Vitest + React Testing Library)
 
 #### Component Testing
-```typescript
-// apps/frontend/src/features/stores/__tests__/StoreCard.test.tsx
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, userEvent } from '@testing-library/react';
-import { StoreCard } from '../components/StoreCard';
-import type { Store } from '@shared/types';
-
-/**
- * Test suite for StoreCard component.
- * 
- * Tests user interactions, accessibility, and error handling.
- * Ensures proper integration with parent components.
- */
-describe('StoreCard', () => {
-  const mockStore: Store = {
-    id: 'store1' as any,
-    name: 'Test Store',
-    description: 'A test store',
-    category: 'lunch',
-    isActive: true,
-    address: '123 Main St',
-    rating: 4.5,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  };
-
-  it('should display store information correctly', () => {
-    const onSelect = vi.fn();
-    
-    render(<StoreCard store={mockStore} onSelect={onSelect} />);
-    
-    expect(screen.getByText('Test Store')).toBeInTheDocument();
-    expect(screen.getByText('A test store')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /view menu/i })).toBeInTheDocument();
-  });
-
-  it('should call onSelect when store is clicked', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    
-    render(<StoreCard store={mockStore} onSelect={onSelect} />);
-    
-    await user.click(screen.getByRole('button', { name: /view menu/i }));
-    
-    expect(onSelect).toHaveBeenCalledWith(mockStore);
-    expect(onSelect).toHaveBeenCalledTimes(1);
-  });
-
-  it('should be accessible via keyboard navigation', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    
-    render(<StoreCard store={mockStore} onSelect={onSelect} />);
-    
-    const button = screen.getByRole('button', { name: /view menu/i });
-    button.focus();
-    
-    expect(button).toHaveFocus();
-    
-    await user.keyboard('{Enter}');
-    expect(onSelect).toHaveBeenCalledWith(mockStore);
-  });
-});
-```
+Use Vitest + React Testing Library, test user interactions, accessibility, and error handling. Focus on behavior not implementation.
 
 #### Hook Testing
-```typescript
-// apps/frontend/src/hooks/__tests__/useStores.test.tsx
-import { describe, it, expect, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useStores } from '../useStores';
-
-describe('useStores', () => {
-  let queryClient: QueryClient;
-
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-  });
-
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
-
-  it('should fetch stores successfully', async () => {
-    const mockStores = [mockStore];
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ data: { stores: mockStores } }),
-    } as Response);
-
-    const { result } = renderHook(() => useStores({}), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data?.stores).toEqual(mockStores);
-  });
-
-  it('should handle fetch errors', async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => useStores({}), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.isError).toBe(true);
-    });
-
-    expect(result.current.error).toBeDefined();
-  });
-});
-```
+Use renderHook with QueryClient wrapper, mock fetch responses, test success and error states.
 
 ### E2E Testing with Cypress
-```typescript
-// cypress/e2e/order-flow.cy.ts
-describe('Complete Order Flow', () => {
-  beforeEach(() => {
-    cy.task('db:seed'); // Seed test database
-    cy.visit('/');
-  });
-
-  it('should complete full order process for authenticated user', () => {
-    // Login
-    cy.get('[data-testid="login-button"]').click();
-    cy.get('[data-testid="email-input"]').type('test@example.com');
-    cy.get('[data-testid="password-input"]').type('password123');
-    cy.get('[data-testid="submit-button"]').click();
-
-    // Browse stores
-    cy.get('[data-testid="store-card"]').should('be.visible');
-    cy.get('[data-testid="category-filter"]').select('lunch');
-    cy.get('[data-testid="store-card"]').first().click();
-
-    // Add items to cart
-    cy.get('[data-testid="menu-item"]').first().within(() => {
-      cy.get('[data-testid="add-to-cart"]').click();
-    });
-    
-    cy.get('[data-testid="cart-count"]').should('contain', '1');
-
-    // Checkout
-    cy.get('[data-testid="cart-button"]').click();
-    cy.get('[data-testid="delivery-address"]').type('123 Test St');
-    cy.get('[data-testid="checkout-button"]').click();
-
-    // Verify order creation
-    cy.url().should('include', '/orders/');
-    cy.get('[data-testid="order-status"]').should('contain', 'New');
-  });
-
-  it('should redirect to login for unauthenticated checkout', () => {
-    cy.get('[data-testid="store-card"]').first().click();
-    cy.get('[data-testid="add-to-cart"]').first().click();
-    cy.get('[data-testid="cart-button"]').click();
-    cy.get('[data-testid="checkout-button"]').click();
-
-    cy.url().should('include', '/login');
-  });
-});
-```
+Test complete user journeys (login → browse → add to cart → checkout), use data-testid attributes, seed database before tests.
 
 ## Validation Commands
 
@@ -1040,152 +523,18 @@ npx prisma migrate reset
 
 ### ✅ Good Patterns
 
-#### Type-Safe API Calls with Branded Types
-```typescript
-// Define branded types first
-type StoreId = z.infer<typeof StoreIdSchema>; // string & { readonly brand: unique symbol }
-
-// Use in both BE and FE
-const store = await apiClient.get<Store>(`/api/stores/${storeId}`);
-```
-
-#### Proper Error Handling with Custom Error Classes
-```typescript
-// Backend
-export class StoreNotFoundError extends AppError {
-  constructor(storeId: StoreId) {
-    super(404, `Store with ID ${storeId} not found`, 'STORE_NOT_FOUND');
-  }
-}
-
-// Frontend
-try {
-  const result = await createOrder(orderData);
-  return result;
-} catch (error) {
-  if (error instanceof ApiError && error.status === 404) {
-    toast.error('Store not found');
-  } else {
-    toast.error('Something went wrong');
-  }
-  throw error;
-}
-```
-
-#### Comprehensive Input Validation
-```typescript
-// Validate at system boundaries
-export const validateStoreCreation = (input: unknown): CreateStoreRequest => {
-  const result = createStoreSchema.safeParse(input);
-  if (!result.success) {
-    throw new ValidationError('Invalid store data', result.error.errors);
-  }
-  return result.data;
-};
-```
-
-#### Component Composition with Proper Props
-```typescript
-// Compose components with clear interfaces
-interface OrderSummaryProps {
-  items: CartItem[];
-  onItemChange: (itemId: string, quantity: number) => void;
-  onRemoveItem: (itemId: string) => void;
-  isLoading?: boolean;
-}
-
-export const OrderSummary = ({ 
-  items, 
-  onItemChange, 
-  onRemoveItem, 
-  isLoading = false 
-}: OrderSummaryProps): ReactElement => {
-  // Implementation with proper error boundaries
-};
-```
+#### Essential Patterns
+- **Type-Safe APIs**: Use branded types with Zod schemas, proper error classes
+- **Input Validation**: Validate at system boundaries with safeParse()
+- **Component Design**: Clear interfaces, proper error boundaries, explicit return types
 
 ### ❌ Anti-Patterns
 
-#### Using `any` Type
-```typescript
-// Bad - loses all type safety
-const response: any = await fetch('/api/stores');
-const data = await response.json(); // any type
-
-// Good - maintain type safety
-const stores = await apiClient.get<GetStoresResponse>('/api/stores');
-```
-
-#### Hardcoded Values
-```typescript
-// Bad - hardcoded configuration
-const API_URL = 'http://localhost:3001';
-const MAX_ITEMS = 10;
-
-// Good - environment-based configuration
-const API_URL = env.API_URL;
-const MAX_ITEMS = env.MAX_CART_ITEMS;
-```
-
-#### Missing Error States in Components
-```typescript
-// Bad - doesn't handle error states
-const StoreList = (): ReactElement => {
-  const { data } = useStores();
-  
-  return (
-    <div>
-      {data?.stores.map(store => <StoreCard key={store.id} store={store} />)}
-    </div>
-  );
-};
-
-// Good - handles all states
-const StoreList = (): ReactElement => {
-  const { data, isLoading, error } = useStores();
-  
-  if (isLoading) return <StoreListSkeleton />;
-  if (error) return <ErrorMessage error={error} />;
-  if (!data?.stores.length) return <EmptyStoreList />;
-  
-  return (
-    <div>
-      {data.stores.map(store => <StoreCard key={store.id} store={store} />)}
-    </div>
-  );
-};
-```
-
-#### Prop Drilling Beyond 2 Levels
-```typescript
-// Bad - excessive prop drilling
-<App>
-  <Layout user={user} cart={cart}>
-    <StorePage user={user} cart={cart}>
-      <StoreDetails user={user} cart={cart}>
-        <MenuItem user={user} cart={cart} />
-      </StoreDetails>
-    </StorePage>
-  </Layout>
-</App>
-
-// Good - use context or state management
-const CartProvider = ({ children }: { children: ReactNode }) => {
-  // Cart context logic
-};
-
-<App>
-  <CartProvider>
-    <Layout>
-      <StorePage>
-        <StoreDetails>
-          <MenuItem /> {/* Accesses cart via context */}
-        </StoreDetails>
-      </StorePage>
-    </Layout>
-  </CartProvider>
-</App>
-```
+#### Common Anti-Patterns to Avoid
+- **NEVER use `any` type** - use proper typing or `unknown`
+- **NO hardcoded values** - use environment configuration
+- **ALWAYS handle all component states** - loading, error, empty, success
+- **NO prop drilling beyond 2 levels** - use context or state management
 
 ## Development Workflow
 
@@ -1279,32 +628,32 @@ npm run validate
 4. **MUST derive types from Zod schemas** using `z.infer<typeof schema>`
 
 ### Validation (MANDATORY)
-5. **VALIDATE everything with Zod** - ALL external data must be validated
-6. **MUST validate at system boundaries** - API inputs, form data, environment
-7. **MUST fail fast** - validate early, throw meaningful errors immediately
+1. **VALIDATE everything with Zod** - ALL external data must be validated
+2. **MUST validate at system boundaries** - API inputs, form data, environment
+3. **MUST fail fast** - validate early, throw meaningful errors immediately
 
 ### Testing (MINIMUM REQUIREMENTS)
-8. **MINIMUM 80% test coverage** - NO EXCEPTIONS
-9. **MUST co-locate tests** - tests MUST be in `__tests__` folders
-10. **MUST test ALL states** - loading, error, empty, and success states
-11. **MUST write integration tests** for API endpoints
+1. **MINIMUM 80% test coverage** - NO EXCEPTIONS
+2. **MUST co-locate tests** - tests MUST be in `__tests__` folders
+3. **MUST test ALL states** - loading, error, empty, and success states
+4. **MUST write integration tests** for API endpoints
 
 ### Code Quality (ENFORCE STRICTLY)  
-12. **MAXIMUM 500 lines per file** - split if larger
-13. **MAXIMUM 200 lines per component** - refactor if larger
-14. **MUST handle ALL error cases** - never ignore potential failures
-15. **MUST use semantic commits** - feat:, fix:, docs:, refactor:, test:
+1. **MAXIMUM 500 lines per file** - split if larger
+2. **MAXIMUM 200 lines per component** - refactor if larger
+3. **MUST handle ALL error cases** - never ignore potential failures
+4. **MUST use semantic commits** - feat:, fix:, docs:, refactor:, test:
 
 ### Security (NON-NEGOTIABLE)
-16. **NEVER trust user input** - sanitize and validate everything
-17. **MUST validate environment variables** - with Zod at startup
-18. **MUST use HTTPS in production** - no exceptions
-19. **MUST sanitize all outputs** - prevent XSS attacks
+1. **NEVER trust user input** - sanitize and validate everything
+2. **MUST validate environment variables** - with Zod at startup
+3. **MUST use HTTPS in production** - no exceptions
+4. **MUST sanitize all outputs** - prevent XSS attacks
 
 ### Performance (OPTIMIZE FOR SCALE)
-20. **MUST use React Server Components** for data fetching
-21. **MUST implement proper caching** - API responses and database queries  
-22. **MUST optimize images** - use Next.js Image component
-23. **MUST implement pagination** - for all list endpoints
+1. **MUST use React Server Components** for data fetching
+2. **MUST implement proper caching** - API responses and database queries  
+3. **MUST optimize images** - use Next.js Image component
+4. **MUST implement pagination** - for all list endpoints
 
 Remember: This is a demonstration project showcasing PRP methodology. Every implementation should be production-ready and follow the established patterns. Code quality and type safety are non-negotiable - they demonstrate the effectiveness of the PRP approach.

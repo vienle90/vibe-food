@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+// @ts-ignore
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -250,6 +251,7 @@ async function main(): Promise<void> {
         preparationTime: 18,
         allergens: ['gluten', 'dairy'],
         nutritionalInfo: { calories: 280, protein: 12, carbs: 30, fat: 11 },
+        imageUrl: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'pizza-pepperoni',
@@ -260,6 +262,7 @@ async function main(): Promise<void> {
         preparationTime: 18,
         allergens: ['gluten', 'dairy'],
         nutritionalInfo: { calories: 320, protein: 14, carbs: 32, fat: 15 },
+        imageUrl: 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'pizza-veggie',
@@ -270,6 +273,7 @@ async function main(): Promise<void> {
         preparationTime: 20,
         allergens: ['gluten', 'dairy'],
         nutritionalInfo: { calories: 260, protein: 11, carbs: 35, fat: 9 },
+        imageUrl: 'https://images.unsplash.com/photo-1585238342024-78d387f4a707?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'pizza-garlic-bread',
@@ -280,6 +284,7 @@ async function main(): Promise<void> {
         preparationTime: 8,
         allergens: ['gluten', 'dairy'],
         nutritionalInfo: { calories: 180, protein: 4, carbs: 28, fat: 6 },
+        imageUrl: 'https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?w=400&h=300&fit=crop&crop=center',
       },
     ];
     
@@ -305,6 +310,7 @@ async function main(): Promise<void> {
         preparationTime: 3,
         allergens: [],
         nutritionalInfo: { calories: 5, protein: 0, carbs: 1, fat: 0 },
+        imageUrl: 'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'coffee-latte',
@@ -315,6 +321,7 @@ async function main(): Promise<void> {
         preparationTime: 5,
         allergens: ['dairy'],
         nutritionalInfo: { calories: 120, protein: 6, carbs: 12, fat: 4 },
+        imageUrl: 'https://images.unsplash.com/photo-1561047029-3000c68339ca?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'coffee-cappuccino',
@@ -325,6 +332,7 @@ async function main(): Promise<void> {
         preparationTime: 5,
         allergens: ['dairy'],
         nutritionalInfo: { calories: 80, protein: 4, carbs: 8, fat: 3 },
+        imageUrl: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'coffee-croissant',
@@ -335,6 +343,7 @@ async function main(): Promise<void> {
         preparationTime: 2,
         allergens: ['gluten', 'dairy', 'eggs'],
         nutritionalInfo: { calories: 230, protein: 5, carbs: 26, fat: 12 },
+        imageUrl: 'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?w=400&h=300&fit=crop&crop=center',
       },
     ];
     
@@ -360,6 +369,7 @@ async function main(): Promise<void> {
         preparationTime: 12,
         allergens: ['fish'],
         nutritionalInfo: { calories: 200, protein: 18, carbs: 20, fat: 8 },
+        imageUrl: 'https://images.unsplash.com/photo-1563612116625-3012372fccce?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'sushi-california-roll',
@@ -370,6 +380,7 @@ async function main(): Promise<void> {
         preparationTime: 10,
         allergens: ['shellfish'],
         nutritionalInfo: { calories: 175, protein: 8, carbs: 22, fat: 6 },
+        imageUrl: 'https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'sushi-tuna-sashimi',
@@ -380,6 +391,7 @@ async function main(): Promise<void> {
         preparationTime: 8,
         allergens: ['fish'],
         nutritionalInfo: { calories: 160, protein: 32, carbs: 0, fat: 2 },
+        imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'sushi-miso-soup',
@@ -390,6 +402,7 @@ async function main(): Promise<void> {
         preparationTime: 5,
         allergens: ['soy'],
         nutritionalInfo: { calories: 35, protein: 3, carbs: 4, fat: 1 },
+        imageUrl: 'https://images.unsplash.com/photo-1569562211093-4ed0d0758f12?w=400&h=300&fit=crop&crop=center',
       },
     ];
     
@@ -415,6 +428,7 @@ async function main(): Promise<void> {
         preparationTime: 5,
         allergens: ['gluten', 'dairy', 'eggs'],
         nutritionalInfo: { calories: 450, protein: 6, carbs: 58, fat: 22 },
+        imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'dessert-cheesecake',
@@ -425,6 +439,7 @@ async function main(): Promise<void> {
         preparationTime: 3,
         allergens: ['gluten', 'dairy', 'eggs'],
         nutritionalInfo: { calories: 410, protein: 8, carbs: 35, fat: 28 },
+        imageUrl: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400&h=300&fit=crop&crop=center',
       },
       {
         id: 'dessert-tiramisu',
@@ -435,6 +450,7 @@ async function main(): Promise<void> {
         preparationTime: 3,
         allergens: ['gluten', 'dairy', 'eggs'],
         nutritionalInfo: { calories: 380, protein: 7, carbs: 42, fat: 20 },
+        imageUrl: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop&crop=center',
       },
     ];
     
