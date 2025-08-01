@@ -95,8 +95,8 @@ export function isNotFoundError(error: unknown): boolean {
  * @param context - Context information
  * @returns Logger function
  */
-export function createErrorLogger(context: string) {
-  return (error: unknown, additional?: Record<string, any>) => {
+export function createErrorLogger(_context: string) {
+  return (_error: unknown, _additional?: Record<string, any>) => {
     // console.error(`[${context}] Error:`, error, additional);
   };
 }

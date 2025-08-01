@@ -12,7 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useCartStore, useClearCart } from '@/stores/cart';
-import { useAccessToken } from '@/stores/auth';
+import { useAccessToken, useAuthUser } from '@/stores/auth';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { RegisterModal } from '@/components/auth/RegisterModal';
 import { formatCurrency } from '@/lib/utils';
 import { orderService } from '@/lib/api-services';
 import type { PaymentMethod } from '@vibe/shared';
@@ -33,10 +35,14 @@ export function CheckoutClient(): ReactElement {
   const subtotal = useCartStore((state) => state.getSubtotal());
   const clearCart = useClearCart();
   const accessToken = useAccessToken();
+  const user = useAuthUser();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState<CheckoutFormData>({
@@ -52,14 +58,25 @@ export function CheckoutClient(): ReactElement {
     setIsHydrated(true);
   }, []);
 
-  // Redirect if cart is empty (but only after hydration)
+  // Auto-fill form fields when user is authenticated
   useEffect(() => {
-    if (!isHydrated) return; // Don't redirect during hydration
+    if (user && user.phone && user.address) {
+      setFormData(prev => ({
+        ...prev,
+        deliveryAddress: prev.deliveryAddress || user.address || '',
+        customerPhone: prev.customerPhone || user.phone || '',
+      }));
+    }
+  }, [user]);
+
+  // Redirect if cart is empty (but only after hydration and not after order placement)
+  useEffect(() => {
+    if (!isHydrated || orderPlaced) return; // Don't redirect during hydration or after order placement
     
     if (items.length === 0) {
       router.push('/');
     }
-  }, [items.length, router, isHydrated]);
+  }, [items.length, router, isHydrated, orderPlaced]);
 
   // Get store ID from cart items (assuming single store)
   // Use a more robust method to get storeId
@@ -67,6 +84,22 @@ export function CheckoutClient(): ReactElement {
   const deliveryFee = 2.99;
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + deliveryFee + tax;
+
+  // Auth modal handlers
+  const handleSwitchToRegister = (): void => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const handleSwitchToLogin = (): void => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
+  };
+
+  const handleCloseModals = (): void => {
+    setShowLoginModal(false);
+    setShowRegisterModal(false);
+  };
   
 
   const validateForm = (data: CheckoutFormData): boolean => {
@@ -120,8 +153,7 @@ export function CheckoutClient(): ReactElement {
     
     if (!accessToken) {
       setError('Please login to place an order.');
-      // Redirect to login with return URL
-      router.push(`/login?returnUrl=${encodeURIComponent('/checkout')}`);
+      setShowLoginModal(true);
       return;
     }
     
@@ -153,10 +185,12 @@ export function CheckoutClient(): ReactElement {
       // Create order with authentication token
       const response = await orderService.createOrder(orderRequest, accessToken);
       
-      // Clear cart and redirect to confirmation
+      // Set order placed flag to prevent empty cart redirect
+      setOrderPlaced(true);
+      
+      // Clear cart and redirect to orders page
       clearCart();
-      const redirectUrl = `/orders/${response.orderId}?confirmed=true`;
-      router.push(redirectUrl);
+      router.push('/orders');
       
     } catch (err: any) {
       setError(err.message || 'Failed to place order. Please try again.');
@@ -409,6 +443,19 @@ export function CheckoutClient(): ReactElement {
           </CardContent>
         </Card>
       </div>
+
+      {/* Auth Modals */}
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={handleCloseModals}
+        onSwitchToRegister={handleSwitchToRegister}
+      />
+
+      <RegisterModal 
+        isOpen={showRegisterModal}
+        onClose={handleCloseModals}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { StoreHeader } from '@/components/stores/StoreHeader';
 import { CategoryNavigation } from '@/components/stores/CategoryNavigation';
 import { MenuSection } from '@/components/stores/MenuSection';
 import { CartButton } from '@/components/cart/CartButton';
-import { CartSheet } from '@/components/cart/CartSheet';
 import type { GetStoreDetailsResponse, GetMenuResponse } from '@vibe/shared';
 
 // Type alias for menu item from API response
@@ -99,7 +98,6 @@ export function StoreDetailsClient({
         </div>
 
         <CartButton />
-        <CartSheet />
       </div>
   );
 }
