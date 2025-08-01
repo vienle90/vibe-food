@@ -59,6 +59,18 @@ export const storeService = {
     const response = await apiClient.get<GetMenuResponse>(`/api/stores/${storeId}/menu`, params);
     return response;
   },
+  
+  /**
+   * Fetch stores owned by authenticated user (requires authentication)
+   * 
+   * @param token - Access token for authentication
+   * @returns Promise with stores owned by the user
+   */
+  async getMyStores(token: string): Promise<{ stores: GetStoreDetailsResponse[] }> {
+    const authenticatedClient = createAuthenticatedClient(token);
+    const response = await authenticatedClient.get<{ stores: GetStoreDetailsResponse[] }>('/api/stores/mine');
+    return response;
+  },
 } as const;
 
 /**

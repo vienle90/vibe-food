@@ -39,4 +39,35 @@ export class StoreController {
       next(error);
     }
   };
+
+  /**
+   * Get stores owned by the authenticated user
+   * @route GET /api/stores/mine
+   * @access Private - Store owners only
+   */
+  getMyStores = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.id;
+      const userRole = (req as any).user?.role;
+
+      if (!userId || userRole !== 'STORE_OWNER') {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied. Store owners only.',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const result = await this.storeService.getStoresByOwner(userId);
+      
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

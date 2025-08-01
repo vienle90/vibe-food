@@ -107,4 +107,26 @@ export class StoreRepository {
       },
     });
   }
+
+  async findByOwnerId(ownerId: string): Promise<any[]> {
+    const stores = await this.prisma.store.findMany({
+      where: {
+        ownerId: ownerId,
+        isActive: true,
+      },
+      include: {
+        _count: {
+          select: {
+            orders: true,
+            menuItems: true,
+          },
+        },
+      },
+    });
+
+    return stores.map(store => ({
+      ...store,
+      totalOrders: store._count.orders,
+    }));
+  }
 }

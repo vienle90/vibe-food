@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { OrderController } from '../controllers/order.controller';
 import { validateBody, validateQuery } from '../../../middleware/validation.middleware';
 import { createAuthMiddleware } from '../../auth/middleware/index.js';
+import { verifyStoreOwnership, verifyStoreOwnerRole } from '../../store/middleware/ownership.middleware';
 import { env } from '@vibe/shared';
 import { 
   validationSchemas
@@ -95,12 +96,28 @@ router.post(
 
 /**
  * GET /api/orders/store/:storeId/stats - Get order statistics for a store
- * @route GET /api/orders/store/:storeId/stats
+ * @route GET /api/orders/store/:storeId/stats  
  * @access Private - Store owners and admins only
  */
 router.get(
   '/store/:storeId/stats',
+  verifyStoreOwnerRole,
+  verifyStoreOwnership,
   orderController.getStoreOrderStats
+);
+
+/**
+ * GET /api/orders/store/:storeId/orders - Get orders for a specific store
+ * @route GET /api/orders/store/:storeId/orders
+ * @access Private - Store owners and admins only
+ * @query status, page, limit, dateFrom, dateTo
+ */
+router.get(
+  '/store/:storeId/orders',
+  verifyStoreOwnerRole,
+  verifyStoreOwnership,
+  validateQuery(validationSchemas.orderFilters),
+  orderController.getStoreOrders
 );
 
 export { router as orderRoutes };

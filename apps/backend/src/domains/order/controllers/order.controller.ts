@@ -13,7 +13,7 @@ export class OrderController {
   /**
    * POST /api/orders - Create a new order
    */
-  createOrder = async (req: Request, res: Response, next: NextFunction) => {
+  createOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.id; // User ID from JWT token
       const orderRequest: CreateOrderRequest = req.body;
@@ -45,7 +45,7 @@ export class OrderController {
   /**
    * GET /api/orders - Get order history with filtering
    */
-  getOrders = async (req: Request, res: Response, next: NextFunction) => {
+  getOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.id;
       const userRole = req.user!.role;
@@ -204,36 +204,80 @@ export class OrderController {
           timestamp: new Date().toISOString(),
         });
       }
-      const userRole = req.user!.role;
 
-      // Only store owners and admins can access stats
-      if (userRole !== 'STORE_OWNER' && userRole !== 'ADMIN') {
-        return res.status(403).json({
-          success: false,
-          error: 'Forbidden',
-          message: 'Access denied',
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      // For store owners, verify they own the store
-      if (userRole === 'STORE_OWNER') {
-        // This would need store verification logic
-        // For now, we'll trust the storeId parameter
-      }
-
-      // Get stats from repository directly (would need to add this method to service)
-      // For now, return placeholder response
-      const stats = {
-        totalOrders: 0,
-        pendingOrders: 0,
-        completedOrders: 0,
-        totalRevenue: 0,
-      };
+      const stats = await this.orderService.getStoreOrderStats(storeId);
 
       res.json({
         success: true,
         data: stats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/orders/store/:storeId/orders - Get orders for a specific store (store owners)
+   */
+  getStoreOrders = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
+    try {
+      const { storeId } = req.params;
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      
+      if (!storeId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Store ID is required',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const filters: {
+        status?: OrderStatus;
+        storeId: string;
+        page: number;
+        limit: number;
+        dateFrom?: string;
+        dateTo?: string;
+      } = {
+        storeId,
+        page: req.query.page ? parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+      };
+      
+      if (req.query.status) {
+        filters.status = req.query.status as OrderStatus;
+      }
+      
+      if (req.query.dateFrom) {
+        filters.dateFrom = req.query.dateFrom as string;
+      }
+      
+      if (req.query.dateTo) {
+        filters.dateTo = req.query.dateTo as string;
+      }
+
+      const result = await this.orderService.getOrders(userId, userRole, filters);
+
+      // Create pagination metadata
+      const pagination = {
+        currentPage: result.page,
+        totalPages: Math.ceil(result.total / result.limit),
+        totalItems: result.total,
+        itemsPerPage: result.limit,
+        hasNextPage: result.page < Math.ceil(result.total / result.limit),
+        hasPreviousPage: result.page > 1,
+      };
+
+      res.json({
+        success: true,
+        data: {
+          orders: result.orders,
+          pagination,
+        },
         timestamp: new Date().toISOString(),
       });
     } catch (error) {

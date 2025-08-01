@@ -208,7 +208,9 @@ export class OrderService {
     if (userRole === 'CUSTOMER') {
       orderFilters.customerId = userId;
     } else if (userRole === 'STORE_OWNER') {
-      // For store owners, filter by stores they own
+      // For store owners, they can view either:
+      // 1. Their personal orders (when no storeId is provided)
+      // 2. Orders for a specific store they own (when storeId is provided)
       if (storeId) {
         // Verify ownership of the specific store
         const store = await this.storeRepository.findById(storeId);
@@ -217,9 +219,8 @@ export class OrderService {
         }
         orderFilters.storeId = storeId;
       } else {
-        // Get all stores owned by this user
-        // This would require a method to get store IDs by owner
-        throw new ValidationError('Store ID is required for store owners');
+        // When no storeId is provided, show their personal orders as a customer
+        orderFilters.customerId = userId;
       }
     }
 
@@ -525,6 +526,18 @@ export class OrderService {
       storeId: order.storeId,
       storeName: order.store.name,
     };
+  }
+
+  /**
+   * Get order statistics for a store
+   */
+  async getStoreOrderStats(storeId: string): Promise<{
+    totalOrders: number;
+    pendingOrders: number;
+    completedOrders: number;
+    totalRevenue: number;
+  }> {
+    return await this.orderRepository.getStoreOrderStats(storeId);
   }
 
   /**

@@ -4,6 +4,9 @@ import fs from 'fs';
 import { Request } from 'express';
 import { ValidationError } from '@vibe/shared';
 
+// Define proper type for multer file
+type MulterFile = Express.Multer.File;
+
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -12,10 +15,10 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Configure multer storage
 const storage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, callback) => {
+  destination: (_req: Request, _file: MulterFile, callback) => {
     callback(null, uploadsDir);
   },
-  filename: (_req: Request, file: Express.Multer.File, callback) => {
+  filename: (_req: Request, file: MulterFile, callback) => {
     // Generate unique filename with timestamp and random string
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const extension = path.extname(file.originalname);
@@ -25,7 +28,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter for image validation
-const fileFilter = (_req: Request, file: Express.Multer.File, callback: FileFilterCallback) => {
+const fileFilter = (_req: Request, file: MulterFile, callback: FileFilterCallback) => {
   // Check file type
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (!allowedMimeTypes.includes(file.mimetype)) {

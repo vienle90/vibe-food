@@ -183,7 +183,7 @@ export function CheckoutClient(): ReactElement {
       };
 
       // Create order with authentication token
-      const response = await orderService.createOrder(orderRequest, accessToken);
+      await orderService.createOrder(orderRequest, accessToken);
       
       // Set order placed flag to prevent empty cart redirect
       setOrderPlaced(true);

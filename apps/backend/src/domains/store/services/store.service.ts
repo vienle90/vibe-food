@@ -64,6 +64,27 @@ export class StoreService {
     };
   }
 
+  async getStoresByOwner(ownerId: string): Promise<{ stores: GetStoreDetailsResponse[] }> {
+    const stores = await this.storeRepository.findByOwnerId(ownerId);
+    
+    // Transform Prisma Decimal fields to numbers for JSON serialization
+    const transformedStores = stores.map(store => ({
+      ...store,
+      rating: store.rating ? Number(store.rating) : undefined,
+      totalOrders: store.totalOrders || 0,
+      deliveryFee: Number(store.deliveryFee),
+      minimumOrder: Number(store.minimumOrder),
+      operatingHours: (store.operatingHours as Record<string, any>) || {},
+      email: store.email || undefined,
+      phone: store.phone || undefined,
+      description: store.description || undefined,
+      createdAt: store.createdAt.toISOString(),
+      updatedAt: store.updatedAt.toISOString(),
+    }));
+    
+    return { stores: transformedStores };
+  }
+
   private buildSortOptions(sort: string): StoreSortOptions {
     switch (sort) {
       case 'name':

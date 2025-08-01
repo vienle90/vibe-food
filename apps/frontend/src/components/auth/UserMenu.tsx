@@ -1,7 +1,8 @@
 'use client';
 
-import { ReactElement } from 'react';
-import { User, Settings, LogOut } from 'lucide-react';
+import { ReactElement, useEffect, useState } from 'react';
+import { User, Settings, LogOut, Store, PackageSearch } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -13,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
+import { useAccessToken } from '@/stores/auth';
+import { storeService } from '@/lib/api-services';
 import type { AuthUser } from '@vibe/shared';
 
 interface UserMenuProps {
@@ -20,7 +23,11 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user }: UserMenuProps): ReactElement {
+  const router = useRouter();
   const { logout, isLoading } = useAuth();
+  const accessToken = useAccessToken();
+  const [userStoreId, setUserStoreId] = useState<string | null>(null);
+  const [isLoadingStore, setIsLoadingStore] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -33,6 +40,33 @@ export function UserMenu({ user }: UserMenuProps): ReactElement {
   const getDisplayName = (firstName: string, lastName: string): string => {
     return `${firstName} ${lastName}`;
   };
+
+  // Fetch user's store if they are a store owner
+  useEffect(() => {
+    const fetchUserStore = async () => {
+      if (user.role === 'STORE_OWNER' && accessToken) {
+        setIsLoadingStore(true);
+        try {
+          // Get stores owned by this user
+          const response = await storeService.getMyStores(accessToken);
+          
+          // Use the first store if the user owns any
+          if (response.stores && response.stores.length > 0) {
+            const firstStore = response.stores[0];
+            if (firstStore) {
+              setUserStoreId(firstStore.id);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user store:', error);
+        } finally {
+          setIsLoadingStore(false);
+        }
+      }
+    };
+
+    fetchUserStore();
+  }, [user.role, accessToken]);
 
   return (
     <DropdownMenu>
@@ -64,6 +98,25 @@ export function UserMenu({ user }: UserMenuProps): ReactElement {
         </DropdownMenuLabel>
         
         <DropdownMenuSeparator />
+        
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => router.push('/orders')}
+        >
+          <PackageSearch className="mr-2 h-4 w-4" />
+          <span>My Orders</span>
+        </DropdownMenuItem>
+        
+        {user.role === 'STORE_OWNER' && userStoreId && (
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => router.push(`/store-owner/${userStoreId}/orders`)}
+            disabled={isLoadingStore}
+          >
+            <Store className="mr-2 h-4 w-4" />
+            <span>{isLoadingStore ? 'Loading...' : 'Manage Store Orders'}</span>
+          </DropdownMenuItem>
+        )}
         
         <DropdownMenuItem className="cursor-pointer">
           <User className="mr-2 h-4 w-4" />
