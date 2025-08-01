@@ -12,10 +12,10 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Configure multer storage
 const storage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, callback) => {
+  destination: (_req: Request, _file: multer.File, callback) => {
     callback(null, uploadsDir);
   },
-  filename: (_req: Request, file: Express.Multer.File, callback) => {
+  filename: (_req: Request, file: multer.File, callback) => {
     // Generate unique filename with timestamp and random string
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const extension = path.extname(file.originalname);
@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter for image validation
-const fileFilter = (_req: Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
+const fileFilter = (_req: Request, file: multer.File, callback: multer.FileFilterCallback) => {
   // Check file type
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (!allowedMimeTypes.includes(file.mimetype)) {

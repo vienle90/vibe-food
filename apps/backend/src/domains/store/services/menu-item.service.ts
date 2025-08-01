@@ -32,9 +32,9 @@ export class MenuItemService {
 
     // Get menu items with optional filters
     const filters: any = {};
-    if (category) filters.category = category;
-    if (search) filters.search = search;
-    if (available !== undefined) filters.isAvailable = available;
+    if (category) {filters.category = category;}
+    if (search) {filters.search = search;}
+    if (available !== undefined) {filters.isAvailable = available;}
     
     const menuItems = await this.menuItemRepository.findByStoreId(storeId, filters);
 

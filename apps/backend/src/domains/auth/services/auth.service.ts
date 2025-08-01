@@ -338,7 +338,19 @@ export class AuthService {
       await this.storeRefreshToken(user.id, tokenPair.refreshToken);
 
       // Return user data without password hash
-      const { password: _, ...userWithoutPassword } = user;
+      const userWithoutPassword = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        phone: user.phone,
+        address: user.address,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
       
       return {
         user: {

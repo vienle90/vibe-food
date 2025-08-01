@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, AlertTriangle, ShoppingCart, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import { orderService } from '@/lib/api-services';
 import { useCartStore } from '@/stores/cart';
+import { useAccessToken } from '@/stores/auth';
 
 interface ReorderModalProps {
   orderId: string;
@@ -43,11 +44,30 @@ export function ReorderModal({
   onClose 
 }: ReorderModalProps): ReactElement | null {
   const router = useRouter();
+  const accessToken = useAccessToken();
   const [loading, setLoading] = useState(false);
   const [reorderData, setReorderData] = useState<ReorderData | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   const { clearCart, addItem, items: cartItems } = useCartStore();
+
+  const loadReorderData = useCallback(async (): Promise<void> => {
+    if (!accessToken) {
+      setError('Please login to reorder');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await orderService.reorderOrder(orderId, accessToken);
+      setReorderData(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to check item availability');
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId, accessToken]);
 
   // Load reorder data when modal opens
   React.useEffect(() => {
@@ -55,20 +75,7 @@ export function ReorderModal({
           loadReorderData();
         }
       },
-      [isOpen, reorderData, loading]);
-
-  const loadReorderData = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await orderService.reorderOrder(orderId);
-      setReorderData(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to check item availability');
-    } finally {
-      setLoading(false);
-    }
-  };
+      [isOpen, reorderData, loading, loadReorderData]);
 
   const handleReorder = async (): Promise<void> => {
     if (!reorderData) return;
@@ -130,7 +137,7 @@ export function ReorderModal({
 
       onClose();
     } catch (err: any) {
-      console.error('Failed to reorder:', err);
+      // console.error('Failed to reorder:', err);
       toast.error('Failed to add items to cart', {
         description: err.message || 'Please try again'
       });

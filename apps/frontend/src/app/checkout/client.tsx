@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useCartStore, useClearCart } from '@/stores/cart';
+import { useAccessToken } from '@/stores/auth';
 import { formatCurrency } from '@/lib/utils';
 import { orderService } from '@/lib/api-services';
-import type { CreateOrderRequest, PaymentMethod } from '@vibe/shared';
+import type { PaymentMethod } from '@vibe/shared';
 
 // Form validation schema
 const checkoutFormSchema = z.object({
@@ -31,6 +32,8 @@ export function CheckoutClient(): ReactElement {
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore((state) => state.getSubtotal());
   const clearCart = useClearCart();
+  const accessToken = useAccessToken();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -59,10 +62,12 @@ export function CheckoutClient(): ReactElement {
   }, [items.length, router, isHydrated]);
 
   // Get store ID from cart items (assuming single store)
-  const storeId = items[0]?.menuItem?.storeId;
+  // Use a more robust method to get storeId
+  const storeId = items.length > 0 ? items[0]?.menuItem?.storeId : undefined;
   const deliveryFee = 2.99;
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + deliveryFee + tax;
+  
 
   const validateForm = (data: CheckoutFormData): boolean => {
     const result = checkoutFormSchema.safeParse(data);
@@ -92,8 +97,31 @@ export function CheckoutClient(): ReactElement {
   const onSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
-    if (!storeId) {
+    
+    // More robust validation
+    if (!storeId || storeId === undefined || storeId === null || storeId === '') {
       setError('No store selected. Please add items to cart first.');
+      return;
+    }
+    
+    // Validate that cart has items and each item has required fields
+    if (!items || items.length === 0) {
+      setError('Your cart is empty. Please add items before checkout.');
+      return;
+    }
+    
+    // Validate each item has required fields
+    for (const item of items) {
+      if (!item.menuItemId || !item.quantity) {
+        setError('Invalid cart data. Please refresh and try again.');
+        return;
+      }
+    }
+    
+    if (!accessToken) {
+      setError('Please login to place an order.');
+      // Redirect to login with return URL
+      router.push(`/login?returnUrl=${encodeURIComponent('/checkout')}`);
       return;
     }
     
@@ -105,25 +133,29 @@ export function CheckoutClient(): ReactElement {
     setError(null);
 
     try {
-      // Prepare order request - cart items already have the correct structure
-      const orderRequest: CreateOrderRequest = {
-        storeId,
-        items: items, // Cart items already match the expected schema
+      
+      // Prepare order request - backend expects simplified items for validation
+      const orderItems = items.map(item => ({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        specialInstructions: item.specialInstructions
+      }));
+      
+      const orderRequest = {
+        storeId: storeId as any, // Cast to bypass branded type check
+        items: orderItems,
         paymentMethod: formData.paymentMethod as PaymentMethod,
         deliveryAddress: formData.deliveryAddress,
         customerPhone: formData.customerPhone,
-        notes: formData.notes,
+        notes: formData.notes || '',
       };
 
-      // Create order
-      console.log('Creating order with request:', orderRequest);
-      const response = await orderService.createOrder(orderRequest);
-      console.log('Order created successfully:', response);
+      // Create order with authentication token
+      const response = await orderService.createOrder(orderRequest, accessToken);
       
       // Clear cart and redirect to confirmation
       clearCart();
       const redirectUrl = `/orders/${response.orderId}?confirmed=true`;
-      console.log('Redirecting to:', redirectUrl);
       router.push(redirectUrl);
       
     } catch (err: any) {
@@ -148,6 +180,15 @@ export function CheckoutClient(): ReactElement {
       <div className="text-center py-12">
         <p className="text-muted-foreground mb-4">Your cart is empty</p>
         <Button onClick={() => router.push('/')}>Browse Restaurants</Button>
+      </div>
+    );
+  }
+
+  // Show loading if storeId is not available yet (cart not fully loaded)
+  if (!storeId && isHydrated && items.length > 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Loading store information...</p>
       </div>
     );
   }

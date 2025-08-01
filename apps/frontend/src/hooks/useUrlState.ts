@@ -84,7 +84,7 @@ export const useUrlState = (options: UseUrlStateOptions = {}) => {
     }
     
     // If validation fails, return default values
-    console.warn('Invalid URL parameters, using defaults:', result.error);
+    // console.warn('Invalid URL parameters, using defaults:', result.error);
     return { ...defaultValues };
   }, [searchParams, defaultValues]);
   
@@ -165,7 +165,7 @@ export const useUrlState = (options: UseUrlStateOptions = {}) => {
       newFilters = { ...defaultValues, ...result.data };
     } else {
       // If validation fails, return default values
-      console.warn('Invalid URL parameters, using defaults:', result.error);
+      // console.warn('Invalid URL parameters, using defaults:', result.error);
       newFilters = { ...defaultValues };
     }
     

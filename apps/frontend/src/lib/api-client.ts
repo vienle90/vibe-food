@@ -109,6 +109,7 @@ class ApiClient {
     data?: any,
     config?: RequestConfig
   ): Promise<T> {
+    
     const response = await fetchWithTimeout(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
@@ -239,6 +240,7 @@ export function createAuthenticatedClient(token: string) {
       apiClient.post<T>(endpoint, data, {
         ...config,
         headers: {
+          'Content-Type': 'application/json',
           ...config?.headers,
           Authorization: `Bearer ${token}`,
         },
@@ -248,6 +250,7 @@ export function createAuthenticatedClient(token: string) {
       apiClient.put<T>(endpoint, data, {
         ...config,
         headers: {
+          'Content-Type': 'application/json',
           ...config?.headers,
           Authorization: `Bearer ${token}`,
         },

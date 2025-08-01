@@ -49,7 +49,7 @@ export default async function StorePage({ params }: StorePageProps): Promise<Rea
       />
     );
   } catch (error) {
-    console.error('Failed to load store:', error);
+    // console.error('Failed to load store:', error);
     notFound();
   }
 }

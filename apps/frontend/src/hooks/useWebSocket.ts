@@ -107,7 +107,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
       // Connection event handlers
       socket.on('connect', () => {
-        console.log('WebSocket connected');
+        // console.log('WebSocket connected');
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
@@ -115,7 +115,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       });
 
       socket.on('disconnect', (reason) => {
-        console.log('WebSocket disconnected:', reason);
+        // console.log('WebSocket disconnected:', reason);
         setIsConnected(false);
         setIsConnecting(false);
         
@@ -132,7 +132,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       });
 
       socket.on('connect_error', (error) => {
-        console.error('WebSocket connection error:', error);
+        // console.error('WebSocket connection error:', error);
         setError(error);
         setIsConnecting(false);
         setIsConnected(false);
@@ -140,7 +140,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
       // Handle authentication errors
       socket.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        // console.error('WebSocket error:', error);
         setError(new Error(error));
         setIsConnecting(false);
       });
@@ -152,7 +152,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
       socketRef.current = socket;
     } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+      // console.error('Failed to create WebSocket connection:', error);
       setError(error as Error);
       setIsConnecting(false);
     }

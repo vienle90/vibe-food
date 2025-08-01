@@ -26,12 +26,45 @@ export class OrderService {
   }
 
   /**
+   * Validate that a customer exists in the database
+   */
+  private async validateCustomerExists(customerId: string): Promise<boolean> {
+    if (!customerId || typeof customerId !== 'string') {
+      return false;
+    }
+
+    try {
+      // Create a new Prisma client instance for user validation
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const customer = await prisma.user.findUnique({
+        where: { id: customerId },
+        select: { id: true, role: true },
+      });
+      
+      await prisma.$disconnect();
+      
+      return customer !== null && customer.role === 'CUSTOMER';
+    } catch (error) {
+      console.error('Error validating customer existence:', error);
+      return false;
+    }
+  }
+
+  /**
    * Create a new order with comprehensive validation
    */
   async createOrder(
     customerId: string,
     orderRequest: CreateOrderRequest
   ): Promise<OrderWithDetails> {
+    // 0. Validate customer exists in the database
+    const customerExists = await this.validateCustomerExists(customerId);
+    if (!customerExists) {
+      throw new NotFoundError(`Customer with ID ${customerId} not found or is not a customer`);
+    }
+
     // 1. Validate store exists and is active
     const store = await this.storeRepository.findById(orderRequest.storeId);
     if (!store || !store.isActive) {
@@ -169,7 +202,7 @@ export class OrderService {
   ): Promise<{ orders: any[]; total: number; page: number; limit: number }> {
     const { page = 1, limit = 20, status, storeId } = filters;
 
-    let orderFilters: any = {};
+    const orderFilters: any = {};
 
     // Apply role-based filtering
     if (userRole === 'CUSTOMER') {

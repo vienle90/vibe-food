@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactElement, useState, useEffect } from 'react';
+import { ReactElement, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Package, ChefHat, Truck, CheckCircle, XCircle, Clock, RotateCcw } from 'lucide-react';
 
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReorderModal } from '@/components/orders/ReorderModal';
+import { useAccessToken } from '@/stores/auth';
 import { orderService } from '@/lib/api-services';
 import { formatCurrency } from '@/lib/utils';
 import type { GetOrdersResponse, OrderStatus } from '@vibe/shared';
@@ -30,6 +31,7 @@ const ORDER_STATUS_CONFIG: Record<OrderStatus, {
 
 export function OrderHistoryClient(): ReactElement {
   const router = useRouter();
+  const accessToken = useAccessToken();
   const [orders, setOrders] = useState<GetOrdersResponse['orders']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +42,15 @@ export function OrderHistoryClient(): ReactElement {
     orderNumber: string;
   } | null>(null);
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
-  const loadOrders = async (pageNum = 1): Promise<void> => {
+  const loadOrders = useCallback(async (pageNum = 1): Promise<void> => {
+    if (!accessToken) return;
+    
     try {
       setLoading(true);
       const response = await orderService.getOrders({ 
         page: pageNum, 
         limit: 10 
-      });
+      }, accessToken);
 
       if (pageNum === 1) {
         setOrders(response.orders);
@@ -61,12 +61,20 @@ export function OrderHistoryClient(): ReactElement {
       setHasMore(response.pagination.hasNextPage);
       setPage(pageNum);
     } catch (err: any) {
-      console.error('Failed to load orders:', err);
+      // console.error('Failed to load orders:', err);
       setError(err.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      router.push('/login?returnUrl=/orders');
+      return;
+    }
+    loadOrders();
+  }, [accessToken, router, loadOrders]);
 
   const loadMore = (): void => {
     if (!loading && hasMore) {

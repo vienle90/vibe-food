@@ -145,7 +145,7 @@ export const useCartStore = create<CartState>()(
           if (result.success) {
             state.items = result.data;
           } else {
-            console.warn('Invalid cart data in storage, clearing cart:', result.error);
+            // console.warn('Invalid cart data in storage, clearing cart:', result.error);
             state.items = [];
           }
         }

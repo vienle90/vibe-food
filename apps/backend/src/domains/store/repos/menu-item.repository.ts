@@ -66,14 +66,14 @@ export class MenuItemRepository {
   async update(id: string, data: UpdateMenuItemData): Promise<MenuItem> {
     const updateData: any = {};
     
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.description !== undefined) updateData.description = data.description || null;
-    if (data.price !== undefined) updateData.price = data.price;
-    if (data.category !== undefined) updateData.category = data.category;
-    if (data.isAvailable !== undefined) updateData.isAvailable = data.isAvailable;
-    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
-    if (data.preparationTime !== undefined) updateData.preparationTime = data.preparationTime;
-    if (data.allergens !== undefined) updateData.allergens = data.allergens;
+    if (data.name !== undefined) {updateData.name = data.name;}
+    if (data.description !== undefined) {updateData.description = data.description || null;}
+    if (data.price !== undefined) {updateData.price = data.price;}
+    if (data.category !== undefined) {updateData.category = data.category;}
+    if (data.isAvailable !== undefined) {updateData.isAvailable = data.isAvailable;}
+    if (data.imageUrl !== undefined) {updateData.imageUrl = data.imageUrl || null;}
+    if (data.preparationTime !== undefined) {updateData.preparationTime = data.preparationTime;}
+    if (data.allergens !== undefined) {updateData.allergens = data.allergens;}
     if (data.nutritionalInfo !== undefined) {
       if (data.nutritionalInfo) {
         updateData.nutritionalInfo = data.nutritionalInfo;

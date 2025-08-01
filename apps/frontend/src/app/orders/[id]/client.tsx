@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactElement, useState, useEffect } from 'react';
+import { ReactElement, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OrderProgressIndicator } from '@/components/orders/OrderProgressIndicator';
 import { ReorderModal } from '@/components/orders/ReorderModal';
+import { useAccessToken } from '@/stores/auth';
 import { orderService } from '@/lib/api-services';
 import { formatCurrency } from '@/lib/utils';
 import { useWebSocket, OrderStatusUpdate } from '@/hooks/useWebSocket';
@@ -37,6 +38,7 @@ interface OrderDetailsClientProps {
 
 export function OrderDetailsClient({ orderId, isConfirmationPage = false }: OrderDetailsClientProps): ReactElement {
   const router = useRouter();
+  const accessToken = useAccessToken();
   const [order, setOrder] = useState<GetOrderDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +55,28 @@ export function OrderDetailsClient({ orderId, isConfirmationPage = false }: Orde
     error: wsError
   } = useWebSocket({ autoConnect: true });
 
+  const loadOrderDetails = useCallback(async (): Promise<void> => {
+    if (!accessToken) return;
+    
+    try {
+      setLoading(true);
+      const orderDetails = await orderService.getOrderDetails(orderId, accessToken);
+      setOrder(orderDetails);
+    } catch (err: any) {
+      // console.error('Failed to load order details:', err);
+      setError(err.message || 'Failed to load order details');
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId, accessToken]);
+
   useEffect(() => {
+    if (!accessToken) {
+      router.push('/login?returnUrl=/orders/' + orderId);
+      return;
+    }
     loadOrderDetails();
-  }, [orderId]);
+  }, [orderId, accessToken, router, loadOrderDetails]);
 
   // Set up WebSocket subscription when order is loaded
   useEffect(() => {
@@ -104,31 +125,22 @@ export function OrderDetailsClient({ orderId, isConfirmationPage = false }: Orde
     return unsubscribe;
   }, [orderId, order?.orderNumber, onOrderStatusUpdate]);
 
-  const loadOrderDetails = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const orderDetails = await orderService.getOrderDetails(orderId);
-      setOrder(orderDetails);
-    } catch (err: any) {
-      console.error('Failed to load order details:', err);
-      setError(err.message || 'Failed to load order details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCancelOrder = async (): Promise<void> => {
     if (!order || !window.confirm('Are you sure you want to cancel this order?')) {
       return;
     }
 
+    if (!accessToken) {
+      router.push('/login?returnUrl=/orders/' + orderId);
+      return;
+    }
     try {
       setCancelling(true);
-      await orderService.cancelOrder(order.id);
+      await orderService.cancelOrder(order.id, accessToken);
       // Reload order details to get updated status
       await loadOrderDetails();
     } catch (err: any) {
-      console.error('Failed to cancel order:', err);
+      // console.error('Failed to cancel order:', err);
       alert(err.message || 'Failed to cancel order');
     } finally {
       setCancelling(false);

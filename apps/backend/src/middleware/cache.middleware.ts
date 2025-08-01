@@ -96,9 +96,9 @@ export const cacheMenu = cacheMiddleware({
     const queryParams = new URLSearchParams();
     
     // Include relevant query parameters in cache key
-    if (req.query.category) queryParams.set('category', req.query.category as string);
-    if (req.query.available) queryParams.set('available', req.query.available as string);
-    if (req.query.search) queryParams.set('search', req.query.search as string);
+    if (req.query.category) {queryParams.set('category', req.query.category as string);}
+    if (req.query.available) {queryParams.set('available', req.query.available as string);}
+    if (req.query.search) {queryParams.set('search', req.query.search as string);}
     
     const queryString = queryParams.toString();
     return `menu:${storeId}:${queryString || 'all'}`;
@@ -114,10 +114,10 @@ export const cacheStoreList = cacheMiddleware({
     const queryParams = new URLSearchParams();
     
     // Include search/filter parameters in cache key
-    if (req.query.category) queryParams.set('category', req.query.category as string);
-    if (req.query.search) queryParams.set('search', req.query.search as string);
-    if (req.query.page) queryParams.set('page', req.query.page as string);
-    if (req.query.limit) queryParams.set('limit', req.query.limit as string);
+    if (req.query.category) {queryParams.set('category', req.query.category as string);}
+    if (req.query.search) {queryParams.set('search', req.query.search as string);}
+    if (req.query.page) {queryParams.set('page', req.query.page as string);}
+    if (req.query.limit) {queryParams.set('limit', req.query.limit as string);}
     
     const queryString = queryParams.toString();
     return `stores:list:${queryString || 'all'}`;

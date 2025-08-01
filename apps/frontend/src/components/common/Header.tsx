@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Package, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CartButton } from '@/components/cart/CartButton';
+import { AuthButton } from '@/components/auth';
 import { useCartSummary } from '@/stores/cart';
 
 export function Header(): ReactElement {
@@ -54,7 +55,7 @@ export function Header(): ReactElement {
           </Link>
         </nav>
 
-        {/* Mobile Navigation + Cart */}
+        {/* Mobile Navigation + Actions */}
         <div className="flex items-center space-x-2">
           {/* Mobile Orders Button */}
           <div className="md:hidden">
@@ -68,6 +69,9 @@ export function Header(): ReactElement {
               <span className="hidden xs:inline">Orders</span>
             </Button>
           </div>
+
+          {/* Auth Button */}
+          <AuthButton variant="ghost" size="sm" />
 
           {/* Cart Button */}
           <CartButton variant="inline" />

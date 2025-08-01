@@ -1,42 +1,31 @@
 import { Router } from 'express';
 import { OrderController } from '../controllers/order.controller';
 import { validateBody, validateQuery } from '../../../middleware/validation.middleware';
+import { createAuthMiddleware } from '../../auth/middleware/index.js';
+import { env } from '@vibe/shared';
 import { 
   validationSchemas
 } from '@vibe/shared';
+import type { JWTConfig } from '../../auth/types/auth.types.js';
 
 const router = Router();
 const orderController = new OrderController();
 
-// Simple auth check middleware - for now we'll skip auth to test the endpoints
-// TODO: Implement proper auth middleware integration
-const simpleAuthCheck = (req: any, _res: any, next: any) => {
-  // Mock user for testing - using real user ID from database
-  // Check if this is a status update request to use store owner role
-  if (req.path.includes('/status') && req.method === 'PUT') {
-    req.user = {
-      id: 'cmdqp5xft0003u7bt23oza75l', // Same user, but with store owner role
-      role: 'STORE_OWNER',
-      email: 'owner@sakura.com',
-      username: 'sakuraowner',
-      firstName: 'Takeshi',
-      lastName: 'Yamamoto'
-    };
-  } else {
-    req.user = {
-      id: 'cmdqp5xft0003u7bt23oza75l', // Real user ID from seed data
-      role: 'CUSTOMER',
-      email: 'test@example.com',
-      username: 'testuser',
-      firstName: 'Test',
-      lastName: 'User'
-    };
-  }
-  next();
+// Create JWT configuration for authentication middleware
+const jwtConfig: JWTConfig = {
+  accessSecret: env.JWT_SECRET,
+  refreshSecret: env.JWT_REFRESH_SECRET,
+  accessExpiresIn: env.JWT_EXPIRES_IN,
+  refreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN,
+  issuer: 'vibe-food-api',
+  audience: 'vibe-food-app',
 };
 
+// Initialize authentication middleware
+const authMiddleware = createAuthMiddleware(jwtConfig);
+
 // All order routes require authentication
-router.use(simpleAuthCheck);
+router.use(authMiddleware.authenticate);
 
 /**
  * POST /api/orders - Create a new order
