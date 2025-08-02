@@ -14,7 +14,8 @@ import type {
   LoginRequest,
   RegisterRequest,
   AuthResponse,
-  CurrentUserResponse
+  CurrentUserResponse,
+  UpdateProfileRequest
 } from '@vibe/shared';
 
 /**
@@ -246,6 +247,19 @@ export const authService = {
   async getCurrentUser(token: string): Promise<CurrentUserResponse> {
     const authenticatedClient = createAuthenticatedClient(token);
     const response = await authenticatedClient.get<CurrentUserResponse>('/api/auth/me');
+    return response;
+  },
+
+  /**
+   * Update user profile
+   * 
+   * @param token - Access token
+   * @param profileData - Profile data to update
+   * @returns Promise with updated user data
+   */
+  async updateProfile(token: string, profileData: UpdateProfileRequest): Promise<{ user: CurrentUserResponse['user'] }> {
+    const authenticatedClient = createAuthenticatedClient(token);
+    const response = await authenticatedClient.put<{ user: CurrentUserResponse['user'] }>('/api/auth/profile', profileData);
     return response;
   },
 

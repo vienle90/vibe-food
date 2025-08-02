@@ -16,7 +16,8 @@ import { Router } from 'express';
 import type { PrismaClient } from '@prisma/client';
 import { 
   registerRequestSchema, 
-  loginRequestSchema
+  loginRequestSchema,
+  updateProfileRequestSchema
 } from '@vibe/shared';
 import { env } from '@vibe/shared';
 import { createAuthService } from '../services/auth.service.js';
@@ -127,18 +128,24 @@ export function createAuthRoutes(prisma: PrismaClient): Router {
     authController.me
   );
 
-  // Future protected routes can be added here with appropriate middleware chains
-  
   /**
-   * Example: Update user profile endpoint (for future implementation)
+   * Update user profile endpoint
    * PUT /profile
    * 
-   * router.put('/profile',
-   *   authMiddleware.authenticate,
-   *   validateBody(updateProfileSchema),
-   *   authController.updateProfile
-   * );
+   * Updates current user's profile information (phone and address).
+   * 
+   * Middleware chain:
+   * 1. authMiddleware.authenticate - Verify JWT token and attach user to request
+   * 2. validateBody - Validate update data with Zod schema
+   * 3. authController.updateProfile - Update user profile and return updated data
    */
+  router.put('/profile',
+    authMiddleware.authenticate,
+    validateBody(updateProfileRequestSchema),
+    authController.updateProfile
+  );
+
+  // Future protected routes can be added here with appropriate middleware chains
 
   /**
    * Example: Change password endpoint (for future implementation)

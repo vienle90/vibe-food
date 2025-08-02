@@ -634,6 +634,76 @@ export class AuthService {
       throw new DatabaseError('Failed to revoke user tokens', error as Error);
     }
   }
+
+  /**
+   * Update user profile information
+   * 
+   * Allows users to update their phone number and address.
+   * Email and username cannot be changed for security reasons.
+   * 
+   * @param userId - User ID from authenticated request
+   * @param updates - Profile fields to update
+   * @returns Updated user profile data
+   * @throws UserNotFoundError if user no longer exists
+   * @throws ValidationError if updates are invalid
+   * @throws DatabaseError for database operations
+   */
+  async updateProfile(
+    userId: string,
+    updates: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      address?: string;
+    }
+  ): Promise<AuthUser> {
+    try {
+      // Validate that user exists
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!existingUser) {
+        throw new UserNotFoundError(userId);
+      }
+
+      // Update user profile
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(updates.firstName && { firstName: updates.firstName }),
+          ...(updates.lastName && { lastName: updates.lastName }),
+          ...(updates.phone !== undefined && { phone: updates.phone || null }),
+          ...(updates.address !== undefined && { address: updates.address || null }),
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          isActive: true,
+          phone: true,
+          address: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return {
+        ...updatedUser,
+        createdAt: updatedUser.createdAt.toISOString(),
+        updatedAt: updatedUser.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof UserNotFoundError) {
+        throw error;
+      }
+      
+      throw new DatabaseError('Failed to update profile', error as Error);
+    }
+  }
 }
 
 /**

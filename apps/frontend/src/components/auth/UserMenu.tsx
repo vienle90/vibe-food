@@ -58,7 +58,7 @@ export function UserMenu({ user }: UserMenuProps): ReactElement {
             }
           }
         } catch (error) {
-          console.error('Failed to fetch user store:', error);
+          // Failed to fetch user store - silently ignore
         } finally {
           setIsLoadingStore(false);
         }
@@ -118,7 +118,10 @@ export function UserMenu({ user }: UserMenuProps): ReactElement {
           </DropdownMenuItem>
         )}
         
-        <DropdownMenuItem className="cursor-pointer">
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => router.push('/profile')}
+        >
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>

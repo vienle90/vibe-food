@@ -254,6 +254,49 @@ export class AuthController {
   };
 
   /**
+   * Update user profile endpoint
+   * PUT /api/auth/profile
+   * 
+   * Updates current user's profile information (phone and address).
+   * Requires authentication middleware to populate req.user.
+   * 
+   * @param req - Express request with validated update data in body
+   * @param res - Express response
+   * @param next - Express next function for error handling
+   */
+  updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      // Verify user authentication from middleware
+      if (!req.user) {
+        throw new ValidationError('User authentication required', [
+          {
+            field: 'user',
+            message: 'Request must be authenticated',
+            code: 'required',
+            received: undefined,
+          }
+        ]);
+      }
+
+      // Update user profile via service
+      const updatedUser = await this.authService.updateProfile(req.user.id, req.body);
+
+      // Return updated user profile data
+      res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          user: updatedUser,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Pass errors to Express error handling middleware
+      next(error);
+    }
+  };
+
+  /**
    * Set refresh token as HTTP-only cookie with security flags
    * 
    * @private

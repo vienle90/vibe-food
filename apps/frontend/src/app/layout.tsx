@@ -4,6 +4,7 @@ import { ReactElement, ReactNode } from 'react';
 import { RootProviders } from '@/lib/providers';
 import { Header } from '@/components/common/Header';
 import { CartSheet } from '@/components/cart/CartSheet';
+import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps): ReactElement 
               {children}
             </main>
             <CartSheet />
+            <Toaster />
           </RootProviders>
         </div>
       </body>
